@@ -7,7 +7,7 @@ import {
   StandardSearchService,
 } from '@microsoft-logic-apps/designer-client-services';
 import { ResourceIdentityType } from '@microsoft-logic-apps/utils';
-import { DesignerProvider, BJSWorkflowProvider, Designer } from '@microsoft/logic-apps-designer';
+import { DesignerProvider } from '@microsoft/logic-apps-designer';
 import { useSelector } from 'react-redux';
 
 const httpClient = new HttpClient();
@@ -52,6 +52,7 @@ const oAuthService = new StandardOAuthService({
 export const App = () => {
   const vscodeState = useSelector((state: RootState) => state.designer);
   const { workflow } = vscodeState;
+  throw new Error("Workflow folder doesn't exist");
 
   return (
     <DesignerProvider
@@ -65,11 +66,7 @@ export const App = () => {
         },
       }}
     >
-      {workflow ? (
-        <BJSWorkflowProvider workflow={{ definition: workflow.definition, connectionReferences: {} }}>
-          <Designer></Designer>
-        </BJSWorkflowProvider>
-      ) : null}
+      {workflow ? null : null}
     </DesignerProvider>
   );
 };
