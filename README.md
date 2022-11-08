@@ -1,6 +1,54 @@
-# Project
+<div align="center" style="display: flex; align-items: center; justify-content: center; gap: 16px">
+  <img 
+    src="./libs/readme/logicAppLogo.png"
+    width="80" 
+    height="80"
+    style="padding: 0px; margin: 0px"
+  />
+  <span style="font-size:48px;">
+    Azure LogicAppsUX
+  </span>
+</div>
 
-Documentation for getting started can be found at https://aka.ms/logicappsux
+# Overview
+
+Azure Logic Apps is a cloud platform where you can create and run automated workflows with little to no code. By using the visual designer and selecting from prebuilt operations, you can quickly build a workflow that integrates and manages your apps, data, services, and systems.
+
+This repository contains our UX focused Logic Apps projects like our new Logic Apps Workflow Designer, as well as our new Data Mapper project.
+
+# Documentation
+
+Full logic apps documentation is [available here](https://learn.microsoft.com/en-us/azure/logic-apps/)
+
+A more in-depth overview is [available here](https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview)
+
+<br>
+
+<img 
+  src="./libs/readme/workflowLogo.svg" 
+  align="left"
+  width="40" 
+  height="40"
+  style="padding-right: 12px" 
+/>
+
+# **New Logic Apps Designer**
+
+<img src="./libs/readme/designerExample.png" style="border-radius: 4px; margin-bottom: 16px" />
+
+Lots of text describing the app.
+
+React, Fluent, react-flow, etc.
+
+<br>
+
+# **Data Mapper**
+
+> Coming eventually ...?
+
+<br>
+
+---
 
 ## Contributing
 
