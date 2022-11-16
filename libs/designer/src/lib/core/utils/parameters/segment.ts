@@ -1,4 +1,5 @@
 import type { RepetitionContext } from './helper';
+import { VariableBrandColor, FxIcon, ParameterIcon, VariableIcon } from './helper';
 import { JsonSplitter } from './jsonsplitter';
 import { TokenSegmentConvertor } from './tokensegment';
 import { UncastingUtility } from './uncast';
@@ -89,13 +90,13 @@ export class ValueSegmentConvertor {
         const expression = ExpressionParser.parseTemplateExpression(value);
         const segments = this._convertTemplateExpressionToValueSegments(expression);
 
-        // NOTE(tonytang): If an non-interpolated expression is turned into a signle TOKEN, we don't surround with double quote. Otherwise,
+        // Note: If an non-interpolated expression is turned into a signle TOKEN, we don't surround with double quote. Otherwise,
         // double quotes are added to surround the expression. This is the existing behaviour.
         if (segments.length === 1 && isTokenValueSegment(segments[0]) && !isStringInterpolation(expression)) {
           return segments;
         } else {
           const escapedSegments = segments.map((segment) => {
-            // NOTE(tonytang): All literal segments must be escaped since they are inside a JSON string.
+            // Note: All literal segments must be escaped since they are inside a JSON string.
             if (isLiteralValueSegment(segment)) {
               const json = JSON.stringify(segment.value);
               return { ...segment, value: json.slice(1, -1) };
@@ -130,7 +131,7 @@ export class ValueSegmentConvertor {
       }
       return segments;
     } else {
-      // NOTE(tonytang): If the string starts with @, we append @ to escape it if raw mode is enabled.
+      // Note: If the string starts with @, we append @ to escape it if raw mode is enabled.
       if (isStringLiteral(expression) && startsWith(expression.value, '@')) {
         if (this._options.rawModeEnabled) {
           return [this._createLiteralValueSegment(`@${expression.value}`)];
@@ -191,7 +192,7 @@ export class ValueSegmentConvertor {
     if (dynamicContentTokenSegment) {
       return dynamicContentTokenSegment;
     } else {
-      // NOTE(tonytang): We need to get the expression value if this is a sub expression resulted from uncasting.
+      // Note: We need to get the expression value if this is a sub expression resulted from uncasting.
       const value =
         expression.startPosition === 0
           ? expression.expression
@@ -271,7 +272,7 @@ export function createTokenValueSegment(token: Token, value: string, _tokenForma
  * @arg {Token} token - The token.
  * @return {boolean}
  */
-// TODO(tonytang): Use type guard once we define separate type for expression token and others.
+// TODO: Use type guard once we define separate type for expression token and others.
 export function isExpressionToken(token: Token): boolean {
   return token.tokenType === TokenType.FX;
 }
@@ -340,6 +341,7 @@ export function createOutputToken(key: string, actionName: string | undefined, s
     required,
     tokenType: TokenType.OUTPUTS,
     title: name,
+    value: name,
   };
 
   return token;
@@ -357,6 +359,8 @@ export function createExpressionToken(expression: Expression): Token {
     expression,
     key: guid(),
     title: (expression as ExpressionFunction).name,
+    brandColor: '#AD008C',
+    icon: FxIcon,
   };
 }
 
@@ -368,10 +372,14 @@ export function createExpressionToken(expression: Expression): Token {
  */
 export function createVariableToken(variableName: string): Token {
   return {
-    tokenType: TokenType.VARIABLE,
+    description: variableName,
+    value: variableName,
+    key: variableName,
     title: variableName,
     name: variableName,
-    key: variableName,
+    brandColor: VariableBrandColor,
+    icon: VariableIcon,
+    tokenType: TokenType.VARIABLE,
   };
 }
 
@@ -387,6 +395,8 @@ export function createParameterToken(parameterName: string): Token {
     title: parameterName,
     name: parameterName,
     key: parameterName,
+    brandColor: '#916F6F',
+    icon: ParameterIcon,
   };
 }
 

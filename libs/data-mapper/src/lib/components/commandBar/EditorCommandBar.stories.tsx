@@ -11,7 +11,7 @@ const MockStore = ({ children }) => {
 
 export default {
   component: EditorCommandBar,
-  title: 'Data Mapper/EditorCommandBar',
+  title: 'Data Mapper Components/Command Bar',
 } as ComponentMeta<typeof EditorCommandBar>;
 
 const Template: ComponentStory<typeof EditorCommandBar> = (args: EditorCommandBarProps) => <EditorCommandBar {...args} />;
@@ -20,6 +20,7 @@ Template.args = {
   onSaveClick: () => console.log('Save button clicked'),
   onUndoClick: () => console.log('Undo button clicked'),
   onRedoClick: () => console.log('Redo button clicked'),
+  onTestClick: () => console.log('Test button clicked'),
 };
 
 export const Standard = Template.bind({});

@@ -1,12 +1,36 @@
 import type { WorkflowEdge, WorkflowNode } from '../../parsers/models/workflowNode';
-import { WORKFLOW_NODE_TYPES, WORKFLOW_EDGE_TYPES } from '../../parsers/models/workflowNode';
 import type { RootState } from '../../store';
 import { createWorkflowEdge } from '../../utils/graph';
 import type { WorkflowState } from './workflowInterfaces';
+import { labelCase, WORKFLOW_NODE_TYPES, WORKFLOW_EDGE_TYPES } from '@microsoft-logic-apps/utils';
 import { createSelector } from '@reduxjs/toolkit';
 import { useSelector } from 'react-redux';
 
 export const getWorkflowState = (state: RootState): WorkflowState => state.workflow;
+
+export const useNodeDisplayName = (id?: string) => {
+  return useSelector(
+    createSelector(getWorkflowState, (state: WorkflowState) => {
+      return id && state.idReplacements[id] ? labelCase(state.idReplacements[id]) : labelCase(id ?? '');
+    })
+  );
+};
+
+export const useNodeReplacedId = (id?: string) => {
+  return useSelector(
+    createSelector(getWorkflowState, (state: WorkflowState) => {
+      return id && state.idReplacements[id] ? state.idReplacements[id] : id;
+    })
+  );
+};
+
+export const useReplacedIds = () => {
+  return useSelector(
+    createSelector(getWorkflowState, (state: WorkflowState) => {
+      return state.idReplacements;
+    })
+  );
+};
 
 export const useNodeMetadata = (id?: string) =>
   useSelector(createSelector(getWorkflowState, (state: WorkflowState) => (id ? state.nodesMetadata[id] : undefined)));
@@ -103,4 +127,49 @@ export const useWorkflowNode = (actionId?: string) => {
   });
 };
 
+export const useIsGraphEmpty = () => {
+  return useSelector((state: RootState) => state.workflow.graph?.children?.length === 0);
+};
+
 export const useIsLeafNode = (nodeId: string): boolean => useNodeEdgeTargets(nodeId).length === 0;
+
+export const useNewSwitchCaseId = () =>
+  useSelector(
+    createSelector(getWorkflowState, (state: WorkflowState) => {
+      let caseId = 'Case';
+      let caseCount = 1;
+      const idList = Object.keys(state.nodesMetadata);
+      // eslint-disable-next-line no-loop-func
+      while (idList.some((id) => id === caseId)) {
+        caseCount++;
+        caseId = `Case ${caseCount}`;
+      }
+      return caseId;
+    })
+  );
+
+export const useAllGraphParents = (graphId: string): string[] => {
+  return useSelector(
+    createSelector(getWorkflowState, (state: WorkflowState) => {
+      if (state.graph) return getWorkflowGraphPath(state.graph, graphId);
+      else return [];
+    })
+  );
+};
+
+export const getWorkflowGraphPath = (graph: WorkflowNode, graphId: string) => {
+  const traverseGraph = (node: WorkflowNode, path: string[] = []): string[] | undefined => {
+    if (node.id === graphId) {
+      return path;
+    } else {
+      let result;
+      for (const child of node.children ?? []) {
+        const childResult = traverseGraph(child, [...path, node.id]);
+        if (childResult) result = childResult;
+      }
+      return result;
+    }
+  };
+
+  return [...(traverseGraph(graph) ?? []), graphId];
+};

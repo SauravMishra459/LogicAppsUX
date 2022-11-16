@@ -8,9 +8,11 @@ import BigWorkflow from './storybookWorkflows/simpleBigworkflow.json';
 import SimpleWorkflow from './storybookWorkflows/simpleSmallWorkflow.json';
 import {
   StandardConnectionService,
+  StandardOAuthService,
   StandardOperationManifestService,
   StandardSearchService,
 } from '@microsoft-logic-apps/designer-client-services';
+import { ResourceIdentityType } from '@microsoft-logic-apps/utils';
 
 export default {
   component: DesignerProvider,
@@ -27,6 +29,8 @@ const httpClient = {
   dispose: () => Promise.resolve({} as any),
   get: () => Promise.resolve({} as any),
   post: () => Promise.resolve({} as any),
+  put: () => Promise.resolve({} as any),
+  delete: () => Promise.resolve({} as any),
 };
 const RenderedComponent = (props: ComponentProps) => (
   <div style={{ height: '100vh' }}>
@@ -41,10 +45,12 @@ const RenderedComponent = (props: ComponentProps) => (
             httpClient,
             apiHubServiceDetails: {
               apiVersion: '2018-07-01-preview',
+              baseUrl: '/baseUrl',
               subscriptionId: '',
               resourceGroup: '',
               location: '',
             },
+            workflowAppDetails: { appName: 'app', identity: { type: ResourceIdentityType.SYSTEM_ASSIGNED } },
             readConnections: () => Promise.resolve({}),
           }),
           operationManifestService: new StandardOperationManifestService({
@@ -52,7 +58,26 @@ const RenderedComponent = (props: ComponentProps) => (
             baseUrl: '/url',
             httpClient,
           }),
-          searchService: new StandardSearchService(),
+          searchService: new StandardSearchService({
+            baseUrl: '/url',
+            apiVersion: '2018-11-01',
+            httpClient,
+            apiHubServiceDetails: {
+              apiVersion: '2018-07-01-preview',
+              subscriptionId: '',
+              location: '',
+            },
+            isDev: true,
+          }),
+          oAuthService: new StandardOAuthService({
+            baseUrl: '/url',
+            apiVersion: '2018-11-01',
+            httpClient,
+            subscriptionId: '',
+            resourceGroup: '',
+            location: '',
+          }),
+          workflowService: { getCallbackUrl: () => Promise.resolve({ method: 'POST', value: 'Dummy url' }) },
         },
       }}
     >
@@ -68,7 +93,7 @@ export const SimpleButBigDefinition = () => <RenderedComponent workflow={BigWork
 export const ReadOnlyExample = () => <RenderedComponent workflow={SimpleWorkflow as Workflow} options={{ readOnly: true }} />;
 
 export const MonitoringViewExample = () => (
-  <RenderedComponent workflow={SimpleWorkflow as Workflow} options={{ readOnly: true, isMonitoringView: true }} />
+  <RenderedComponent workflow={SimpleWorkflow as Workflow} options={{ readOnly: true, isMonitoringView: true, isDarkMode: false }} />
 );
 
 export const ConnectionsExample = () => <RenderedComponent workflow={ConnectionsWorkflow.files as Workflow} options={{}} />;

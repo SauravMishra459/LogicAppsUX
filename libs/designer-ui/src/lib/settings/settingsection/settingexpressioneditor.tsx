@@ -71,7 +71,7 @@ export const ExpressionsEditor = ({
     iconName: 'Add',
   };
 
-  // const expressionRef = useRef<typeof Expression & { focus: any }>(); //TODO(andrewfowose): implement focus
+  // const expressionRef = useRef<typeof Expression & { focus: any }>(); //TODO: implement focus
   const [expressions, setExpressions] = useState(initialExpressions);
 
   const handleAddClick = (): void => {
@@ -173,7 +173,13 @@ export const Expression = ({ expression, index, readOnly = false, onChange, onDe
         onGetErrorMessage={handleGetErrorMessage}
       />
       <TooltipHost content={deleteValue}>
-        <IconButton ariaLabel={deleteValue} disabled={readOnly} iconProps={deleteIconButtonProps} onClick={handleDeleteClick} />
+        <IconButton
+          className="msla-trigger-condition-expression-add"
+          ariaLabel={deleteValue}
+          disabled={readOnly}
+          iconProps={deleteIconButtonProps}
+          onClick={handleDeleteClick}
+        />
       </TooltipHost>
     </div>
   );

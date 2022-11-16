@@ -1,6 +1,6 @@
 import type { SectionProps, TextChangeHandler } from '..';
 import constants from '../../../common/constants';
-import type { SettingSectionProps } from '../settingsection';
+import type { SettingsSectionProps } from '../settingsection';
 import { SettingsSection, SettingLabel } from '../settingsection';
 import { useCallback } from 'react';
 import { useIntl } from 'react-intl';
@@ -21,6 +21,7 @@ export const Tracking = ({
   onClientTrackingIdChange,
   onTrackedPropertiesDictionaryValueChanged,
   onTrackedPropertiesStringValueChange,
+  validationErrors,
 }: TrackingSectionProps): JSX.Element | null => {
   const intl = useIntl();
 
@@ -63,7 +64,7 @@ export const Tracking = ({
     <SettingLabel labelText={clientIdTrackingTitle} infoTooltipText={clientTrackingTootltipText} isChild={false} />
   );
 
-  const trackingSectionProps: SettingSectionProps = {
+  const trackingSectionProps: SettingsSectionProps = {
     id: 'tracking',
     title: trackingTitle,
     sectionName: constants.SETTINGSECTIONS.TRACKING,
@@ -92,6 +93,7 @@ export const Tracking = ({
         visible: trackedProperties?.isSupported,
       },
     ],
+    validationErrors,
   };
 
   return <SettingsSection {...trackingSectionProps} />;

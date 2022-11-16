@@ -3,11 +3,11 @@ import { useActionMetadata, useNodeEdgeTargets, useNodeMetadata } from '../../co
 import { DropZone } from './dropzone';
 import { ArrowCap } from './dynamicsvgs/arrowCap';
 import { RunAfterIndicator } from './runAfterIndicator';
-import { RUN_AFTER_STATUS } from '@microsoft-logic-apps/utils';
+import { getEdgeCenter, RUN_AFTER_STATUS } from '@microsoft-logic-apps/utils';
 import type { ElkExtendedEdge } from 'elkjs/lib/elk-api';
 import React, { useMemo } from 'react';
-import { getEdgeCenter, getSmoothStepPath } from 'react-flow-renderer';
-import type { EdgeProps } from 'react-flow-renderer';
+import { getSmoothStepPath } from 'reactflow';
+import type { EdgeProps } from 'reactflow';
 
 interface EdgeContentProps {
   x: number;
@@ -74,7 +74,7 @@ export const ButtonEdge: React.FC<EdgeProps<LogicAppsEdgeProps>> = ({
   const filteredRunAfters: Record<string, string[]> = useMemo(
     () =>
       Object.entries(operationData?.runAfter ?? {}).reduce(
-        (pv, [id, cv]) => (cv.some((status) => status.toUpperCase() !== RUN_AFTER_STATUS.SUCCEEDED) ? { ...pv, [id]: cv } : pv),
+        (pv, [id, cv]) => ((cv ?? []).some((status) => status.toUpperCase() !== RUN_AFTER_STATUS.SUCCEEDED) ? { ...pv, [id]: cv } : pv),
         {}
       ),
     [operationData?.runAfter]
@@ -92,13 +92,12 @@ export const ButtonEdge: React.FC<EdgeProps<LogicAppsEdgeProps>> = ({
   const multipleTargets = edgeTargets.length > 1;
   const onlyEdge = !multipleSources && !multipleTargets;
 
-  let dynamicMidEdgeY =
-    // sourceY + 64
+  const dynamicMidEdgeY =
     multipleSources && !multipleTargets ? targetY - 64 : multipleTargets && !multipleSources ? sourceY + 64 : edgeCenterY;
 
-  if (numRunAfters !== 0) dynamicMidEdgeY -= 4;
+  // if (numRunAfters !== 0) dynamicMidEdgeY -= 4;
 
-  const d = useMemo(() => {
+  const [d] = useMemo(() => {
     return getSmoothStepPath({
       sourceX,
       sourceY,

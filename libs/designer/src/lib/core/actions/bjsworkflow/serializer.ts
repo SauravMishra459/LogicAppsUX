@@ -1,11 +1,12 @@
 import Constants from '../../../common/constants';
-import type { ConnectionReferences, Workflow } from '../../../common/models/workflow';
+import type { ConnectionReferences, Workflow, WorkflowParameter } from '../../../common/models/workflow';
 import type { WorkflowNode } from '../../parsers/models/workflowNode';
-import { WORKFLOW_NODE_TYPES } from '../../parsers/models/workflowNode';
+import { getConnectorWithSwagger } from '../../queries/connections';
 import { getOperationManifest } from '../../queries/operation';
+import type { NodeOperation } from '../../state/operation/operationMetadataSlice';
 import { getOperationInputParameters } from '../../state/operation/operationSelector';
 import type { RootState } from '../../store';
-import { getNode, isRootNode, isRootNodeInGraph } from '../../utils/graph';
+import { getNode, getTriggerNodeId, isRootNode, isRootNodeInGraph } from '../../utils/graph';
 import {
   encodePathValue,
   getAndEscapeSegment,
@@ -13,11 +14,12 @@ import {
   getJSONValueFromString,
   parameterValueToString,
 } from '../../utils/parameters/helper';
+import { buildOperationDetailsFromControls } from '../../utils/swagger/inputsbuilder';
 import type { Settings } from './settings';
-import { OperationManifestService } from '@microsoft-logic-apps/designer-client-services';
+import { LogEntryLevel, LoggerService, OperationManifestService } from '@microsoft-logic-apps/designer-client-services';
 import { getIntl } from '@microsoft-logic-apps/intl';
 import type { Segment } from '@microsoft-logic-apps/parsers';
-import { cleanIndexedValue, isAncestorKey, parseEx, SegmentType } from '@microsoft-logic-apps/parsers';
+import { create, removeConnectionPrefix, cleanIndexedValue, isAncestorKey, parseEx, SegmentType } from '@microsoft-logic-apps/parsers';
 import type { OperationManifest, SubGraphDetail } from '@microsoft-logic-apps/utils';
 import {
   equals,
@@ -30,8 +32,11 @@ import {
   RecurrenceType,
   first,
   isNullOrEmpty,
+  WORKFLOW_NODE_TYPES,
 } from '@microsoft-logic-apps/utils';
 import type { ParameterInfo } from '@microsoft/designer-ui';
+import { UIConstants } from '@microsoft/designer-ui';
+import merge from 'lodash.merge';
 
 export interface SerializeOptions {
   skipValidation: boolean;
@@ -39,15 +44,45 @@ export interface SerializeOptions {
 }
 
 export const serializeWorkflow = async (rootState: RootState, options?: SerializeOptions): Promise<Workflow> => {
+  const operationsWithSettingsErrors = (Object.entries(rootState.settings.validationErrors) ?? []).filter(
+    ([_id, errorArr]) => errorArr.length > 0
+  );
+  if (operationsWithSettingsErrors.length > 0)
+    throw new Error(
+      'Workflow has operation settings validation errors on the following operations: ' +
+        operationsWithSettingsErrors.map(([id, _errorArr]) => id).join(', ')
+    );
+
   const { connectionsMapping, connectionReferences: referencesObject } = rootState.connections;
+  const workflowParameters = rootState.workflowParameters.definitions;
   const connectionReferences = Object.keys(connectionsMapping).reduce((references: ConnectionReferences, nodeId: string) => {
     const referenceKey = connectionsMapping[nodeId];
+    if (!referenceKey) return references;
     const reference = referencesObject[referenceKey];
 
     return {
       ...references,
       [referenceKey]: reference,
     };
+  }, {});
+
+  const parameters = Object.keys(workflowParameters).reduce((result: Record<string, WorkflowParameter>, parameterId: string) => {
+    const parameter = workflowParameters[parameterId];
+    const parameterDefinition: any = { ...parameter };
+    const value = parameterDefinition.value;
+
+    delete parameterDefinition['name'];
+    delete parameterDefinition['isEditable'];
+
+    parameterDefinition.value = equals(parameterDefinition.type, UIConstants.WORKFLOW_PARAMETER_TYPE.STRING)
+      ? value
+      : value === ''
+      ? undefined
+      : typeof value !== 'string'
+      ? value
+      : JSON.parse(value);
+
+    return { ...result, [parameter.name]: parameterDefinition };
   }, {});
 
   return {
@@ -59,11 +94,12 @@ export const serializeWorkflow = async (rootState: RootState, options?: Serializ
       triggers: await getTrigger(rootState, options),
     },
     connectionReferences,
-    parameters: {},
+    parameters,
   };
 };
 
 const getActions = async (rootState: RootState, options?: SerializeOptions): Promise<LogicAppsV2.Actions> => {
+  const idReplacements = rootState.workflow.idReplacements;
   const rootGraph = rootState.workflow.graph as WorkflowNode;
   const actionsInRootGraph = rootGraph.children?.filter(
     (child) => !isRootNode(child.id, rootState.workflow.nodesMetadata)
@@ -76,10 +112,11 @@ const getActions = async (rootState: RootState, options?: SerializeOptions): Pro
 
   return (await Promise.all(promises)).reduce(
     (actions: LogicAppsV2.Actions, action: LogicAppsV2.ActionDefinition | null, index: number) => {
+      const originalid = actionsInRootGraph[index].id;
       if (!isNullOrEmpty(action)) {
         return {
           ...actions,
-          [actionsInRootGraph[index].id]: action as LogicAppsV2.ActionDefinition,
+          [idReplacements[originalid] ?? originalid]: action as LogicAppsV2.ActionDefinition,
         };
       }
 
@@ -90,11 +127,13 @@ const getActions = async (rootState: RootState, options?: SerializeOptions): Pro
 };
 
 const getTrigger = async (rootState: RootState, options?: SerializeOptions): Promise<LogicAppsV2.Triggers> => {
-  const rootGraph = rootState.workflow.graph as WorkflowNode;
-  const rootNode = rootGraph.children?.find((child) => isRootNode(child.id, rootState.workflow.nodesMetadata)) as WorkflowNode;
-
-  return rootNode
-    ? { [rootNode.id]: ((await serializeOperation(rootState, rootNode.id, options)) ?? {}) as LogicAppsV2.TriggerDefinition }
+  const rootNodeId = getTriggerNodeId(rootState.workflow);
+  const idReplacements = rootState.workflow.idReplacements;
+  return rootNodeId
+    ? {
+        [idReplacements[rootNodeId] ?? rootNodeId]: ((await serializeOperation(rootState, rootNodeId, options)) ??
+          {}) as LogicAppsV2.TriggerDefinition,
+      }
     : {};
 };
 
@@ -105,15 +144,29 @@ export const serializeOperation = async (
 ): Promise<LogicAppsV2.OperationDefinition | null> => {
   const operation = rootState.operations.operationInfo[operationId];
 
-  // TODO (Danielle): Add logic to identify if this operation is in Recommendation phase.
+  // TODO: Add logic to identify if this operation is in Recommendation phase.
   // If in recommendation phase then return null;
 
   let serializedOperation: LogicAppsV2.OperationDefinition;
   if (OperationManifestService().isSupported(operation.type, operation.kind)) {
     serializedOperation = await serializeManifestBasedOperation(rootState, operationId);
   } else {
-    // TODO - Implement for ApiConnection type operations [swagger based]
-    serializedOperation = rootState.workflow.operations[operationId] ?? {};
+    switch (operation.type.toLowerCase()) {
+      case Constants.NODE.TYPE.API_CONNECTION:
+      case Constants.NODE.TYPE.API_CONNECTION_NOTIFICATION:
+      case Constants.NODE.TYPE.API_CONNECTION_WEBHOOK:
+        serializedOperation = await serializeSwaggerBasedOperation(rootState, operationId);
+        break;
+
+      default:
+        LoggerService().log({
+          level: LogEntryLevel.Error,
+          area: 'operation serializer',
+          message: `Do not recognize type: '${operation.type} as swagger based operation'`,
+        });
+        serializedOperation = rootState.workflow.operations[operationId] ?? {};
+        break;
+    }
   }
 
   // TODO - We might have to just serialize bare minimum data for partially loaded node.
@@ -122,19 +175,21 @@ export const serializeOperation = async (
 };
 
 const serializeManifestBasedOperation = async (rootState: RootState, operationId: string): Promise<LogicAppsV2.OperationDefinition> => {
+  const idReplacements = rootState.workflow.idReplacements;
   const operation = rootState.operations.operationInfo[operationId];
   const manifest = await getOperationManifest(operation);
+  const isTrigger = isRootNodeInGraph(operationId, 'root', rootState.workflow.nodesMetadata);
   const inputsToSerialize = getOperationInputsToSerialize(rootState, operationId);
   const nodeSettings = rootState.operations.settings[operationId] ?? {};
   const inputPathValue = serializeOperationParameters(inputsToSerialize, manifest);
   const hostInfo = serializeHost(operationId, manifest, rootState);
   const inputs = hostInfo !== undefined ? { ...inputPathValue, ...hostInfo } : inputPathValue;
   const operationFromWorkflow = rootState.workflow.operations[operationId];
-  const runAfter = isRootNode(operationId, rootState.workflow.nodesMetadata) ? undefined : getRunAfter(operationFromWorkflow);
+  const runAfter = isRootNode(operationId, rootState.workflow.nodesMetadata)
+    ? undefined
+    : getRunAfter(operationFromWorkflow, idReplacements);
   const recurrence =
-    isRootNodeInGraph(operationId, 'root', rootState.workflow.nodesMetadata) &&
-    manifest.properties.recurrence &&
-    manifest.properties.recurrence.type !== RecurrenceType.None
+    isTrigger && manifest.properties.recurrence && manifest.properties.recurrence.type !== RecurrenceType.None
       ? constructInputValues('recurrence.$', inputsToSerialize, false /* encodePathComponents */)
       : undefined;
 
@@ -147,15 +202,53 @@ const serializeManifestBasedOperation = async (rootState: RootState, operationId
     inputs.retryPolicy = retryPolicy;
   }
 
+  const inputsLocation = manifest.properties.inputsLocation ?? ['inputs'];
+
   return {
     type: operation.type,
     ...optional('description', operationFromWorkflow.description),
     ...optional('kind', operation.kind),
-    ...optional((manifest.properties.inputsLocation ?? ['inputs'])[0], inputs),
+    ...(inputsLocation.length ? optional(inputsLocation[0], inputs) : inputs),
     ...childOperations,
     ...optional('runAfter', runAfter),
     ...optional('recurrence', recurrence),
-    ...serializeSettings(operationId, nodeSettings, rootState),
+    ...serializeSettings(operationId, nodeSettings, isTrigger, rootState),
+  };
+};
+
+const serializeSwaggerBasedOperation = async (rootState: RootState, operationId: string): Promise<LogicAppsV2.OperationDefinition> => {
+  const idReplacements = rootState.workflow.idReplacements;
+  const operationInfo = rootState.operations.operationInfo[operationId];
+  const { type, kind } = operationInfo;
+  const operationFromWorkflow = rootState.workflow.operations[operationId];
+  const isTrigger = isRootNode(operationId, rootState.workflow.nodesMetadata);
+  const inputsToSerialize = getOperationInputsToSerialize(rootState, operationId);
+  const nodeSettings = rootState.operations.settings[operationId] ?? {};
+  const runAfter = isTrigger ? undefined : getRunAfter(operationFromWorkflow, idReplacements);
+  const recurrence =
+    isTrigger && equals(type, Constants.NODE.TYPE.API_CONNECTION)
+      ? constructInputValues('recurrence.$', inputsToSerialize, false /* encodePathComponents */)
+      : undefined;
+  const retryPolicy = getRetryPolicy(nodeSettings);
+  const inputPathValue = await serializeParametersFromSwagger(inputsToSerialize, operationInfo);
+  const hostInfo = { host: { connection: { referenceName: rootState.connections.connectionsMapping[operationId] } } };
+  const inputs = { ...hostInfo, ...inputPathValue, retryPolicy };
+  const serializedType = equals(type, Constants.NODE.TYPE.API_CONNECTION)
+    ? Constants.SERIALIZED_TYPE.API_CONNECTION
+    : equals(type, Constants.NODE.TYPE.API_CONNECTION_NOTIFICATION)
+    ? Constants.SERIALIZED_TYPE.API_CONNECTION_NOTIFICATION
+    : equals(type, Constants.NODE.TYPE.API_CONNECTION_WEBHOOK)
+    ? Constants.SERIALIZED_TYPE.API_CONNECTION_WEBHOOK
+    : type;
+
+  return {
+    type: serializedType,
+    ...optional('description', operationFromWorkflow.description),
+    ...optional('kind', kind),
+    ...optional('inputs', inputs),
+    ...optional('runAfter', runAfter),
+    ...optional('recurrence', recurrence),
+    ...serializeSettings(operationId, nodeSettings, isTrigger, rootState),
   };
 };
 
@@ -165,11 +258,12 @@ export interface SerializedParameter extends ParameterInfo {
 }
 
 const getOperationInputsToSerialize = (rootState: RootState, operationId: string): SerializedParameter[] => {
+  const idReplacements = rootState.workflow.idReplacements;
   return getOperationInputParameters(rootState, operationId)
     .filter((input) => !input.info.serialization?.skip)
     .map((input) => ({
       ...input,
-      value: parameterValueToString(input, true /* isDefinitionValue */),
+      value: parameterValueToString(input, true /* isDefinitionValue */, idReplacements),
     }));
 };
 
@@ -180,7 +274,7 @@ const serializeOperationParameters = (inputs: SerializedParameter[], manifest: O
 
   while (inputsLocation.length) {
     const property = inputsLocation.pop() as string;
-    parametersValue = { [property]: parametersValue };
+    parametersValue = property === '[*]' ? [parametersValue] : { [property]: parametersValue };
   }
 
   return parametersValue;
@@ -265,6 +359,29 @@ const serializeParameterWithPath = (
   return result;
 };
 
+const serializeParametersFromSwagger = async (
+  inputs: SerializedParameter[],
+  operationInfo: NodeOperation
+): Promise<Record<string, any>> => {
+  const { operationId, connectorId, type } = operationInfo;
+  const { parsedSwagger } = await getConnectorWithSwagger(connectorId);
+  const { method, path } = parsedSwagger.getOperationByOperationId(operationId);
+  const operationPath = removeConnectionPrefix(path);
+  const operationMethod = equals(type, Constants.NODE.TYPE.API_CONNECTION_WEBHOOK) ? undefined : method;
+  const parameterInputs = equals(type, Constants.NODE.TYPE.API_CONNECTION_NOTIFICATION)
+    ? constructInputValues(create(['inputs', '$']) as string, inputs, false /* encodePathComponents */)
+    : buildOperationDetailsFromControls(inputs, operationPath, false /* encodePathComponents */, operationMethod);
+
+  // Ignore unencoded newline characters in the operation path since
+  // the regular expression used to match paths to their operations
+  // does not match across multiple lines.
+  if (parameterInputs.path) {
+    parameterInputs.path = parameterInputs.path.replace(/[\r\n]/g, '');
+  }
+
+  return parameterInputs;
+};
+
 //#endregion
 
 //#region Host Serialization
@@ -293,7 +410,7 @@ const serializeHost = (
 
   const intl = getIntl();
   const { referenceKeyFormat } = manifest.properties.connectionReference;
-  const referenceKey = rootState.connections.connectionsMapping[nodeId];
+  const referenceKey = rootState.connections.connectionsMapping[nodeId] ?? '';
   const { connectorId, operationId } = rootState.operations.operationInfo[nodeId];
 
   switch (referenceKeyFormat) {
@@ -337,14 +454,12 @@ const serializeNestedOperations = async (
   rootState: RootState
 ): Promise<Partial<LogicAppsV2.Action>> => {
   const { childOperationsLocation, subGraphDetails } = manifest.properties;
+  const idReplacements = rootState.workflow.idReplacements;
   const node = getNode(nodeId, rootState.workflow.graph as WorkflowNode) as WorkflowNode;
   let result: Partial<LogicAppsV2.Action> = {};
 
   if (childOperationsLocation) {
-    result = {
-      ...result,
-      ...(await serializeSubGraph(node, childOperationsLocation ?? [], [], rootState, {})),
-    };
+    result = merge(result, await serializeSubGraph(node, childOperationsLocation ?? [], [], rootState, {}));
   }
 
   if (subGraphDetails) {
@@ -355,29 +470,29 @@ const serializeNestedOperations = async (
 
       if (subGraphDetail.isAdditive) {
         for (const subGraph of subGraphs) {
-          const subGraphId = subGraph.id;
-          result = {
-            ...result,
-            ...(await serializeSubGraph(
+          const subGraphId = idReplacements[subGraph.id] ?? subGraph.id;
+          result = merge(
+            result,
+            await serializeSubGraph(
               subGraph,
               [subGraphLocation, subGraphId, ...(subGraphDetail.location ?? [])],
               [subGraphLocation, subGraphId],
               rootState,
               subGraphDetail
-            )),
-          };
+            )
+          );
         }
       } else if (subGraphs.length === 1) {
-        result = {
-          ...result,
-          ...(await serializeSubGraph(
+        result = merge(
+          result,
+          await serializeSubGraph(
             subGraphs[0],
             [subGraphLocation, ...(subGraphDetail.location ?? [])],
             [subGraphLocation],
             rootState,
             subGraphDetail
-          )),
-        };
+          )
+        );
       }
     }
   }
@@ -400,6 +515,7 @@ const serializeSubGraph = async (
     serializeOperation(rootState, nestedNode.id)
   ) as Promise<LogicAppsV2.OperationDefinition>[];
   const nestedActions = await Promise.all(nestedActionsPromises);
+  const idReplacements = rootState.workflow.idReplacements;
 
   safeSetObjectPropertyValue(
     result,
@@ -408,7 +524,7 @@ const serializeSubGraph = async (
       if (!isNullOrEmpty(action)) {
         return {
           ...actions,
-          [nestedNodes[index].id]: action,
+          [idReplacements[nestedNodes[index].id] ?? [nestedNodes[index].id]]: action,
         };
       }
 
@@ -432,13 +548,14 @@ const isWorkflowOperationNode = (node: WorkflowNode) =>
 const serializeSettings = (
   operationId: string,
   settings: Settings,
+  isTrigger: boolean,
   rootState: RootState
 ): Partial<LogicAppsV2.Action | LogicAppsV2.Trigger> => {
   const conditionExpressions = settings.conditionExpressions;
   const conditions = conditionExpressions
     ? conditionExpressions.value?.filter((expression) => !!expression).map((expression) => ({ expression }))
     : undefined;
-  const timeout = settings.timeout?.isSupported ? { timeout: settings.timeout.value } : undefined;
+  const timeout = settings.timeout?.isSupported && settings.timeout.value ? { timeout: settings.timeout.value } : undefined;
   const trackedProperties = settings.trackedProperties?.value;
 
   return {
@@ -448,6 +565,7 @@ const serializeSettings = (
     ...optional('operationOptions', getSerializedOperationOptions(operationId, settings, rootState)),
     ...optional('runtimeConfiguration', getSerializedRuntimeConfiguration(operationId, settings, rootState)),
     ...optional('trackedProperties', trackedProperties),
+    ...(getSplitOn(isTrigger, settings) ?? {}),
   };
 };
 
@@ -634,8 +752,34 @@ const getRetryPolicy = (settings: Settings): LogicAppsV2.RetryPolicy | undefined
   }
 };
 
+const getSplitOn = (
+  isTrigger: boolean,
+  { splitOn, splitOnConfiguration }: Settings
+):
+  | {
+      splitOn: string;
+      splitOnConfiguration?: { correlation?: { clientTrackingId?: string } };
+    }
+  | undefined => {
+  if (!isTrigger || !splitOn?.value?.enabled) {
+    return undefined;
+  }
+
+  return {
+    splitOn: splitOn.value.value as string,
+    ...(splitOnConfiguration ? { splitOnConfiguration } : {}),
+  };
+};
 //#endregion
 
-const getRunAfter = (operation: LogicAppsV2.ActionDefinition): LogicAppsV2.RunAfter => {
-  return operation.runAfter ?? {};
+const getRunAfter = (operation: LogicAppsV2.ActionDefinition, idReplacements: Record<string, string>): LogicAppsV2.RunAfter => {
+  if (!operation.runAfter) {
+    return {};
+  }
+  return Object.entries(operation.runAfter).reduce((acc: LogicAppsV2.RunAfter, [key, value]) => {
+    return {
+      ...acc,
+      [idReplacements[key] ?? key]: value,
+    };
+  }, {});
 };

@@ -9,8 +9,8 @@ export interface SchemaLoadingState {
   outputResourcePath?: string;
   availableResourcesPaths?: string[];
   loadingMethod: 'file' | 'arm';
-  inputSchema?: Schema;
-  outputSchema?: Schema;
+  sourceSchema?: Schema;
+  targetSchema?: Schema;
   availableSchemas?: Schema[];
 }
 
@@ -20,7 +20,7 @@ const initialState: SchemaLoadingState = {
   outputResourcePath: '',
 };
 
-export const loadInputSchema = createAsyncThunk('schema/loadInputSchema', async (_: void, thunkAPI) => {
+export const loadSourceSchema = createAsyncThunk('schema/loadSourceSchema', async (_: void, thunkAPI) => {
   const currentState: RootState = thunkAPI.getState() as RootState;
   const inputResourcePath = currentState.schemaDataLoader.inputResourcePath;
 
@@ -36,7 +36,7 @@ export const loadInputSchema = createAsyncThunk('schema/loadInputSchema', async 
   return undefined;
 });
 
-export const loadOutputSchema = createAsyncThunk('schema/loadOutputSchema', async (_: void, thunkAPI) => {
+export const loadTargetSchema = createAsyncThunk('schema/loadTargetSchema', async (_: void, thunkAPI) => {
   const currentState: RootState = thunkAPI.getState() as RootState;
   const outputResourcePath = currentState.schemaDataLoader.outputResourcePath;
 
@@ -46,23 +46,6 @@ export const loadOutputSchema = createAsyncThunk('schema/loadOutputSchema', asyn
   } else {
     if (outputResourcePath) {
       return loadSchemaFromMock(outputResourcePath);
-    }
-  }
-
-  return undefined;
-});
-
-export const loadAvailableSchemas = createAsyncThunk('schema/loadAvailableSchemas', async (_: void, thunkAPI) => {
-  const currentState: RootState = thunkAPI.getState() as RootState;
-  const availableSchemaPaths = currentState.schemaDataLoader.availableResourcesPaths;
-
-  // TODO ARM loading
-  if (currentState.schemaDataLoader.loadingMethod === 'arm') {
-    return undefined;
-  } else {
-    if (availableSchemaPaths) {
-      const loadedSchemas = availableSchemaPaths.map(async (schemaPath) => loadSchemaFromMock(schemaPath));
-      return (await Promise.all(loadedSchemas)).filter((loadedSchema) => loadedSchema) as Schema[];
     }
   }
 
@@ -90,31 +73,22 @@ export const schemaDataLoaderSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(loadInputSchema.fulfilled, (state, action) => {
-      state.inputSchema = action.payload;
+    builder.addCase(loadSourceSchema.fulfilled, (state, action) => {
+      state.sourceSchema = action.payload;
     });
 
-    builder.addCase(loadInputSchema.rejected, (state) => {
+    builder.addCase(loadSourceSchema.rejected, (state) => {
       // TODO change to null for error handling case
-      state.inputSchema = undefined;
+      state.sourceSchema = undefined;
     });
 
-    builder.addCase(loadOutputSchema.fulfilled, (state, action) => {
-      state.outputSchema = action.payload;
+    builder.addCase(loadTargetSchema.fulfilled, (state, action) => {
+      state.targetSchema = action.payload;
     });
 
-    builder.addCase(loadOutputSchema.rejected, (state) => {
+    builder.addCase(loadTargetSchema.rejected, (state) => {
       // TODO change to null for error handling case
-      state.outputSchema = undefined;
-    });
-
-    builder.addCase(loadAvailableSchemas.fulfilled, (state, action) => {
-      state.availableSchemas = action.payload;
-    });
-
-    builder.addCase(loadAvailableSchemas.rejected, (state) => {
-      // TODO change to null for error handling case
-      state.availableSchemas = undefined;
+      state.targetSchema = undefined;
     });
   },
 });

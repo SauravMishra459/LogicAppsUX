@@ -1,9 +1,29 @@
 import Constants from '../../common/constants';
-import type { NodeInputs, NodeOutputs, OutputInfo } from '../state/operation/operationMetadataSlice';
-import { getAllInputParameters, getTokenExpressionValue } from './parameters/helper';
+import type { ConnectionReference } from '../../common/models/workflow';
+import { updateOutputsAndTokens } from '../actions/bjsworkflow/initialize';
+import type { Settings } from '../actions/bjsworkflow/settings';
+import { getConnectorWithSwagger } from '../queries/connections';
+import { getOperationManifest } from '../queries/operation';
+import type { DependencyInfo, NodeInputs, NodeOperation, NodeOutputs, OutputInfo } from '../state/operation/operationMetadataSlice';
+import { clearDynamicOutputs, addDynamicOutputs } from '../state/operation/operationMetadataSlice';
+import { addDynamicTokens } from '../state/tokensSlice';
+import { getBrandColorFromConnector, getIconUriFromConnector } from './card';
+import { getTokenExpressionValueForManifestBasedOperation } from './loops';
+import { getDynamicOutputsFromSchema, getDynamicSchema } from './parameters/dynamicdata';
+import { getAllInputParameters, isDynamicDataReadyToLoad } from './parameters/helper';
+import { convertOutputsToTokens } from './tokens';
+import { OperationManifestService } from '@microsoft-logic-apps/designer-client-services';
 import { getIntl } from '@microsoft-logic-apps/intl';
-import type { Expression, ExpressionFunction, ExpressionLiteral } from '@microsoft-logic-apps/parsers';
-import { ExpressionParser, isTemplateExpression, isFunction, isStringLiteral } from '@microsoft-logic-apps/parsers';
+import type { Expression, ExpressionFunction, ExpressionLiteral, OutputParameter, OutputParameters } from '@microsoft-logic-apps/parsers';
+import {
+  create,
+  OutputKeys,
+  OutputSource,
+  ExpressionParser,
+  isTemplateExpression,
+  isFunction,
+  isStringLiteral,
+} from '@microsoft-logic-apps/parsers';
 import type { OperationManifest } from '@microsoft-logic-apps/utils';
 import {
   getObjectPropertyValue,
@@ -14,8 +34,43 @@ import {
   clone,
   equals,
 } from '@microsoft-logic-apps/utils';
-import { generateSchemaFromJsonString, TokenType, ValueSegmentType } from '@microsoft/designer-ui';
+import { generateSchemaFromJsonString, ValueSegmentType } from '@microsoft/designer-ui';
+import type { Dispatch } from '@reduxjs/toolkit';
 
+export const toOutputInfo = (output: OutputParameter): OutputInfo => {
+  const {
+    key,
+    format,
+    type,
+    isDynamic,
+    isInsideArray,
+    name,
+    itemSchema,
+    parentArray,
+    title,
+    summary,
+    description,
+    source,
+    required,
+    visibility,
+  } = output;
+
+  return {
+    key,
+    type,
+    format,
+    isAdvanced: equals(visibility, Constants.VISIBILITY.ADVANCED),
+    name,
+    isDynamic,
+    isInsideArray,
+    itemSchema,
+    parentArray,
+    title: title ?? summary ?? description ?? name,
+    source,
+    required,
+    description,
+  };
+};
 export const getUpdatedManifestForSpiltOn = (manifest: OperationManifest, splitOn: string | undefined): OperationManifest => {
   const intl = getIntl();
   const invalidSplitOn = intl.formatMessage(
@@ -114,7 +169,9 @@ export const isSupportedSplitOnExpression = (expression: Expression): boolean =>
 };
 
 export const getSplitOnOptions = (outputs: NodeOutputs): string[] => {
-  const arrayOutputs = unmap(outputs.outputs).filter((output) => equals(output.type, Constants.SWAGGER.TYPE.ARRAY));
+  const arrayOutputs = unmap(outputs.originalOutputs ?? outputs.outputs).filter((output) =>
+    equals(output.type, Constants.SWAGGER.TYPE.ARRAY)
+  );
 
   // NOTE: The isInsideArray flag is unreliable, as this is reset when calculating
   // if an output is inside a splitOn array. If the entire body is an array, all other array
@@ -199,6 +256,114 @@ export const getUpdatedManifestForSchemaDependency = (manifest: OperationManifes
   return updatedManifest;
 };
 
-const getExpressionValue = ({ name, required, key, title, source }: OutputInfo): string => {
-  return `@${getTokenExpressionValue({ name, required, key, title, source, tokenType: TokenType.OUTPUTS })}`;
+const getSplitOnArrayName = (splitOnValue: string): string | undefined => {
+  if (isTemplateExpression(splitOnValue)) {
+    try {
+      const parsedValue = ExpressionParser.parseTemplateExpression(splitOnValue);
+      if (isSupportedSplitOnExpression(parsedValue)) {
+        const { dereferences } = parsedValue as ExpressionFunction;
+        return !dereferences.length
+          ? undefined
+          : dereferences.map((dereference) => (dereference.expression as ExpressionLiteral).value).join('.');
+      } else {
+        return undefined;
+      }
+    } catch {
+      // If parsing fails, the splitOn expression is not supported.
+      return undefined;
+    }
+  } else {
+    // If the value is not an expression, there is no array name.
+    return undefined;
+  }
+};
+
+export const updateOutputsForBatchingTrigger = (outputs: OutputParameters, splitOn: string | undefined): OutputParameters => {
+  if (splitOn === undefined) {
+    return outputs;
+  }
+
+  const splitOnArray = getSplitOnArrayName(splitOn);
+  // If splitOn is enabled the output info is not present in the store, hence generate the outputKey from the name.
+  const outputKeyForSplitOnArray = splitOnArray ? create([OutputSource.Body, Constants.DEFAULT_KEY_PREFIX, splitOnArray]) : undefined;
+
+  const updatedOutputs: OutputParameters = {};
+  for (const outputKey of Object.keys(outputs)) {
+    const outputParameter = outputs[outputKey];
+
+    const isParentArrayResponseBody = splitOnArray === undefined && outputParameter.parentArray === OutputKeys.Body;
+
+    const isOutputInSplitOnArray =
+      (outputParameter.isInsideArray && isParentArrayResponseBody) || equals(outputParameter.parentArray, splitOnArray);
+    // Resetting the InsideArray property for parameters in batching trigger,
+    // as for the actions in flow they are body parameters not inside an array.
+    if (isOutputInSplitOnArray) {
+      outputParameter.isInsideArray = false;
+    }
+
+    // Filtering the outputs if it is not equal to the top level array in a batching trigger.
+    if (outputParameter.key !== outputKeyForSplitOnArray) {
+      updatedOutputs[outputKey] = outputParameter;
+    }
+  }
+
+  return updatedOutputs;
+};
+
+export const loadDynamicOutputsInNode = async (
+  nodeId: string,
+  isTrigger: boolean,
+  operationInfo: NodeOperation,
+  connectionReference: ConnectionReference | undefined,
+  outputDependencies: Record<string, DependencyInfo>,
+  nodeInputs: NodeInputs,
+  settings: Settings,
+  dispatch: Dispatch
+): Promise<void> => {
+  for (const outputKey of Object.keys(outputDependencies)) {
+    const info = outputDependencies[outputKey];
+    dispatch(clearDynamicOutputs(nodeId));
+
+    if (isDynamicDataReadyToLoad(info)) {
+      if (info.dependencyType === 'StaticSchema') {
+        updateOutputsAndTokens(nodeId, operationInfo, dispatch, isTrigger, nodeInputs, settings, /* shouldProcessSettings */ true);
+      } else {
+        const outputSchema = await getDynamicSchema(info, nodeInputs, operationInfo, connectionReference);
+        let schemaOutputs = outputSchema ? getDynamicOutputsFromSchema(outputSchema, info.parameter as OutputParameter) : {};
+
+        if (settings.splitOn?.value?.enabled) {
+          schemaOutputs = updateOutputsForBatchingTrigger(schemaOutputs, settings.splitOn?.value?.value);
+        }
+
+        const dynamicOutputs = Object.keys(schemaOutputs).reduce((result: Record<string, OutputInfo>, outputKey: string) => {
+          const outputInfo = toOutputInfo(schemaOutputs[outputKey]);
+          return { ...result, [outputInfo.key]: outputInfo };
+        }, {});
+
+        dispatch(addDynamicOutputs({ nodeId, outputs: dynamicOutputs }));
+
+        let iconUri: string, brandColor: string;
+        if (OperationManifestService().isSupported(operationInfo.type, operationInfo.kind)) {
+          const manifest = await getOperationManifest(operationInfo);
+          iconUri = manifest.properties.iconUri;
+          brandColor = manifest.properties.brandColor;
+        } else {
+          const { connector } = await getConnectorWithSwagger(operationInfo.connectorId);
+          iconUri = getIconUriFromConnector(connector);
+          brandColor = getBrandColorFromConnector(connector);
+        }
+
+        dispatch(
+          addDynamicTokens({
+            nodeId,
+            tokens: convertOutputsToTokens(nodeId, operationInfo.type, dynamicOutputs, { iconUri, brandColor }, settings),
+          })
+        );
+      }
+    }
+  }
+};
+
+const getExpressionValue = ({ key }: OutputInfo): string => {
+  return `@${getTokenExpressionValueForManifestBasedOperation(key, false, undefined, undefined)}`;
 };

@@ -5,7 +5,7 @@ import type { ComponentMeta, ComponentStory } from '@storybook/react';
 
 export default {
   component: CreateConnection,
-  title: 'Components/CreateConnection/CreateConnection',
+  title: 'Components/CreateConnection',
 } as ComponentMeta<typeof CreateConnection>;
 
 const mockSimpleConnector: Connector = {
@@ -31,5 +31,6 @@ SimpleExample.args = {
   connectionParameters: mockSimpleConnector.properties.connectionParameters,
   connectionParameterSets: mockSimpleConnector.properties.connectionParameterSets,
   isLoading: false,
+  checkOAuthCallback: () => false,
   createConnectionCallback,
 };

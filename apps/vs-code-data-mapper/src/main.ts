@@ -1,16 +1,33 @@
+import DataMapperExt from './DataMapperExt';
+import { stopBackendRuntime } from './FxWorkflowRuntime';
 import { registerCommands } from './commands/commands';
+import { outputChannelPrefix, outputChannelTitle, supportedDataMapDefinitionFileExts, supportedSchemaFileExts } from './extensionConfig';
+import { createAzExtOutputChannel, registerUIExtensionVariables } from '@microsoft/vscode-azext-utils';
 import type { ExtensionContext } from 'vscode';
 import { commands } from 'vscode';
 
 export function activate(context: ExtensionContext) {
   // Set supported file extensions for context menu detection
-  const supportedDataMapFileExts = ['.yml'];
-  commands.executeCommand('setContext', 'dataMapperExtension.supportedDataMapFileExts', supportedDataMapFileExts);
+  commands.executeCommand('setContext', 'azureDataMapper.supportedDataMapDefinitionFileExts', supportedDataMapDefinitionFileExts);
+  commands.executeCommand('setContext', 'azureDataMapper.supportedSchemaFileExts', supportedSchemaFileExts);
+  commands.executeCommand('setContext', 'azureDataMapper.supportedFileExts', [
+    ...supportedDataMapDefinitionFileExts,
+    ...supportedSchemaFileExts,
+  ]);
 
-  const supportedSchemaFileExts = ['.xsd', '.json']; // JSON for TESTING expected returned values/schema-json from backend
-  commands.executeCommand('setContext', 'dataMapperExtension.supportedSchemaFileExts', supportedSchemaFileExts);
+  DataMapperExt.context = context;
+  DataMapperExt.outputChannel = createAzExtOutputChannel(outputChannelTitle, outputChannelPrefix);
+  registerUIExtensionVariables(DataMapperExt);
 
-  commands.executeCommand('setContext', 'dataMapperExtension.supportedFileExts', [...supportedDataMapFileExts, ...supportedSchemaFileExts]);
+  // This is where we would: validateFuncCoreToolsIsLatest();
 
-  registerCommands(context);
+  // This is where we could registerEvent on vscode.workspace.onDidChangeWorkspaceFolders to verifyVSCodeConfigOnActivate
+
+  registerCommands();
+
+  DataMapperExt.log('Data Mapper extension is loaded');
+}
+
+export function deactivate() {
+  stopBackendRuntime();
 }

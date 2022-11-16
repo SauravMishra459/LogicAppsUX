@@ -1,8 +1,8 @@
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
 
 export interface CardProps {
-  iconName: string;
   onClick?: () => void;
+  displayHandle: boolean;
   disabled: boolean;
   error: boolean;
 }
@@ -18,7 +18,6 @@ export const getStylesForSharedState = makeStyles({
     position: 'relative',
     ...shorthands.border('0px'),
     '&:disabled': {
-      opacity: 0.38,
       shadow: tokens.shadow2,
       cursor: 'not-allowed',
     },
@@ -47,3 +46,11 @@ export const getStylesForSharedState = makeStyles({
     outlineColor: tokens.colorBrandStroke1,
   },
 });
+
+export const selectedCardStyles = {
+  outlineWidth: tokens.strokeWidthThick,
+  outlineColor: tokens.colorBrandStroke1,
+  outlineStyle: 'solid',
+  opacity: 1,
+  boxShadow: tokens.shadow4,
+};

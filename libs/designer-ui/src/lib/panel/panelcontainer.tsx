@@ -9,10 +9,22 @@ import type { PanelHeaderControlType } from './panelheader/panelheader';
 import { PanelHeader } from './panelheader/panelheader';
 import { PanelPivot } from './panelpivot';
 import type { ILayerProps } from '@fluentui/react';
-import type { IPanelHeaderRenderer, IPanelProps } from '@fluentui/react/lib/Panel';
+import type { IPanelHeaderRenderer, IPanelProps, IPanelStyles } from '@fluentui/react/lib/Panel';
 import { Panel, PanelType } from '@fluentui/react/lib/Panel';
 import React, { useCallback } from 'react';
 import { useIntl } from 'react-intl';
+
+const panelStyles: Partial<IPanelStyles> = {
+  content: { padding: '1rem' },
+  main: { overflow: 'hidden' },
+  scrollableContent: { height: '100%' },
+};
+
+const panelStylesCollapsed: Partial<IPanelStyles> = {
+  content: { padding: 0 },
+  main: { overflow: 'hidden' },
+  scrollableContent: { height: '100%' },
+};
 
 export type PanelContainerProps = {
   cardIcon?: string;
@@ -28,6 +40,7 @@ export type PanelContainerProps = {
   showCommentBox: boolean;
   readOnlyMode?: boolean;
   tabs: Record<string, PanelTab>;
+  nodeId: string;
   title?: string;
   layerProps?: ILayerProps;
   onDismissButtonClicked?(): void;
@@ -36,6 +49,7 @@ export type PanelContainerProps = {
   toggleCollapse: () => void;
   onCommentChange: (panelCommentChangeEvent?: string) => void;
   renderHeader?: (props?: IPanelProps, defaultrender?: IPanelHeaderRenderer, headerTextId?: string) => JSX.Element;
+  onTitleChange: (newValue: string) => void;
 } & CommonPanelProps;
 
 export const PanelContainer = ({
@@ -52,6 +66,7 @@ export const PanelContainer = ({
   showCommentBox,
   readOnlyMode,
   tabs,
+  nodeId,
   title,
   width,
   layerProps,
@@ -61,6 +76,7 @@ export const PanelContainer = ({
   trackEvent,
   renderHeader,
   onCommentChange,
+  onTitleChange,
 }: PanelContainerProps) => {
   const intl = useIntl();
   const onTabChange = (itemKey: string): void => {
@@ -68,7 +84,7 @@ export const PanelContainer = ({
   };
 
   const defaultRenderHeader = useCallback(
-    (props?: IPanelProps, defaultrender?: IPanelHeaderRenderer, headerTextId?: string): JSX.Element => {
+    (_props?: IPanelProps, _defaultrender?: IPanelHeaderRenderer, headerTextId?: string): JSX.Element => {
       return (
         <PanelHeader
           cardIcon={cardIcon ?? constants.PANEL.DEFAULT_ICON}
@@ -88,13 +104,14 @@ export const PanelContainer = ({
           comment={comment}
           commentChange={onCommentChange}
           toggleCollapse={toggleCollapse}
+          onTitleChange={onTitleChange}
         />
       );
     },
     [
       cardIcon,
+      onTitleChange,
       isCollapsed,
-      isLoading,
       panelLocation,
       showCommentBox,
       noNodeSelected,
@@ -104,6 +121,7 @@ export const PanelContainer = ({
       panelHeaderControlType,
       readOnlyMode,
       title,
+      isLoading,
       comment,
       onCommentChange,
       toggleCollapse,
@@ -127,26 +145,27 @@ export const PanelContainer = ({
       hasCloseButton={false}
       type={panelLocation === PanelLocation.Right ? PanelType.custom : PanelType.customNear}
       customWidth={width}
-      styles={{ content: { padding: isCollapsed ? 0 : '1rem' }, main: { overflow: 'hidden' } }}
+      styles={isCollapsed ? panelStylesCollapsed : panelStyles}
       layerProps={layerProps}
     >
       {!isCollapsed && (
-        <div className="msla-panel-content-container">
+        <>
           {noNodeSelected && panelScope === PanelScope.CardLevel ? (
             <EmptyContent />
           ) : (
-            <div className="msla-panel-content">
+            <div className="msla-panel-page">
               <PanelPivot
                 isCollapsed={isCollapsed}
                 tabs={tabs}
                 selectedTab={selectedTab}
                 onTabChange={onTabChange}
                 trackEvent={trackEvent}
+                nodeId={nodeId}
               />
               <PanelContent tabs={tabs} selectedTab={selectedTab} />
             </div>
           )}
-        </div>
+        </>
       )}
     </Panel>
   );

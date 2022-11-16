@@ -9,7 +9,12 @@ export const useIsPanelCollapsed = () => useSelector(createSelector(getPanelStat
 
 export const useIsDiscovery = () => useSelector(createSelector(getPanelState, (state: PanelState) => state.isDiscovery));
 
-export const useDiscoveryIds = () => useSelector(createSelector(getPanelState, (state: PanelState) => state.discoveryIds));
+export const useIsWorkflowParametersMode = () =>
+  useSelector(createSelector(getPanelState, (state: PanelState) => state.isWorkflowParameters));
+
+export const useRelationshipIds = () => useSelector(createSelector(getPanelState, (state: PanelState) => state.relationshipIds));
+
+export const useIsParallelBranch = () => useSelector(createSelector(getPanelState, (state: PanelState) => state.isParallelBranch));
 
 export const useSelectedOperationGroupId = () =>
   useSelector(createSelector(getPanelState, (state: PanelState) => state.selectedOperationGroupId));
@@ -33,3 +38,8 @@ export const useVisiblePanelTabs = () =>
   );
 
 export const useSelectedPanelTabName = () => useSelector(createSelector(getPanelState, (state: PanelState) => state.selectedTabName));
+
+export const useSelectedPanelTab = () => {
+  const selectedPanelTabName = useSelectedPanelTabName();
+  return useSelector(createSelector(getPanelState, (state: PanelState) => state.registeredTabs[selectedPanelTabName ?? '']));
+};

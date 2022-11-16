@@ -1,7 +1,9 @@
 import constants from '../../../../common/constants';
-import { useOperationInfo, useIconUri } from '../../../../core/state/selectors/actionMetadataSelector';
+import { useIconUri } from '../../../../core/state/selectors/actionMetadataSelector';
+import { useNodeDisplayName } from '../../../../core/state/workflow/workflowSelectors';
 import { RunAfterActionStatuses } from './runafteractionstatuses';
 import { RunAfterTrafficLights } from './runaftertrafficlights';
+import { useTheme } from '@fluentui/react';
 import { useBoolean } from '@fluentui/react-hooks';
 import type { IButtonStyles } from '@fluentui/react/lib/Button';
 import { IconButton } from '@fluentui/react/lib/Button';
@@ -29,7 +31,6 @@ export interface RunAfterActionDetailsProps {
   isDeleteVisible: boolean;
   readOnly: boolean;
   statuses: string[];
-  title: string;
   visible?: boolean;
   onDelete?(): void;
   onRenderLabel?(props: LabelProps): JSX.Element | null;
@@ -58,13 +59,16 @@ export const RunAfterActionDetails = ({
   isDeleteVisible,
   readOnly,
   statuses,
-  title,
   id,
   onDelete,
   onStatusChange,
   onRenderLabel,
 }: RunAfterActionDetailsProps) => {
   const [expanded, setExpanded] = useBoolean(false);
+
+  const theme = useTheme();
+  const isInverted = theme.isInverted;
+
   const intl = useIntl();
 
   const expandAriaLabel = intl.formatMessage({
@@ -89,7 +93,8 @@ export const RunAfterActionDetails = ({
     return onRenderLabel?.(props) ?? <Label {...props} />;
   };
 
-  const icon = useIcon(id) ?? '';
+  const title = useNodeDisplayName(id);
+  const icon = useIconUri(id);
   return (
     <>
       <div className="msla-run-after-edge-header">
@@ -100,7 +105,7 @@ export const RunAfterActionDetails = ({
                 className="msla-run-after-icon"
                 ariaLabel={format(expanded ? `${collapseAriaLabel} ${title}` : `${expandAriaLabel} ${title}`, title)}
                 iconName={expanded ? 'ChevronDownMed' : 'ChevronRightMed'}
-                styles={{ root: { color: constants.Settings.CHEVRON_ROOT_COLOR_LIGHT } }}
+                styles={{ root: { color: isInverted ? 'white' : constants.Settings.CHEVRON_ROOT_COLOR_LIGHT } }}
               />
               <div className="msla-run-after-edge-header-logo">
                 <img alt="" className="msla-run-after-logo-image" role="presentation" src={icon} />
@@ -167,9 +172,4 @@ const Label = ({ label, status }: LabelProps): JSX.Element => {
       <span>{label}</span>
     </>
   );
-};
-
-const useIcon = (selectedNode: string): string => {
-  const operationInfo = useOperationInfo(selectedNode);
-  return useIconUri(operationInfo).result;
 };

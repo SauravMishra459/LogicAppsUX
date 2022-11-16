@@ -3,10 +3,16 @@ import { UnsupportedException, UnsupportedExceptionCode } from '../../../common/
 import type { Operations, NodesMetadata } from '../../state/workflow/workflowInterfaces';
 import { createWorkflowNode, createWorkflowEdge } from '../../utils/graph';
 import type { WorkflowNode, WorkflowEdge } from '../models/workflowNode';
-import { WORKFLOW_NODE_TYPES, WORKFLOW_EDGE_TYPES } from '../models/workflowNode';
 import { getIntl } from '@microsoft-logic-apps/intl';
 import type { SubgraphType } from '@microsoft-logic-apps/utils';
-import { SUBGRAPH_TYPES, equals, isNullOrEmpty, isNullOrUndefined } from '@microsoft-logic-apps/utils';
+import {
+  WORKFLOW_NODE_TYPES,
+  WORKFLOW_EDGE_TYPES,
+  SUBGRAPH_TYPES,
+  equals,
+  isNullOrEmpty,
+  isNullOrUndefined,
+} from '@microsoft-logic-apps/utils';
 import { title } from 'process';
 
 const hasMultipleTriggers = (definition: LogicAppsV2.WorkflowDefinition): boolean => {
@@ -97,7 +103,7 @@ const buildGraphFromActions = (
     nodesMetadata[actionName] = { graphId, parentNodeId };
 
     if (isScopeAction(action)) {
-      const [scopeNodes, scopeEdges, scopeActions, scopeNodesMetadata] = processScopeActions(graphId, actionName, actionName, action);
+      const [scopeNodes, scopeEdges, scopeActions, scopeNodesMetadata] = processScopeActions(graphId, actionName, action);
       node.children = scopeNodes;
       node.edges = scopeEdges;
       allActions = { ...allActions, ...scopeActions };
@@ -105,7 +111,7 @@ const buildGraphFromActions = (
     }
 
     // Assign root prop
-    nodesMetadata[actionName] = { ...nodesMetadata[actionName], graphId, ...(isRoot && { isRoot: true }) };
+    nodesMetadata[actionName] = { ...nodesMetadata[actionName], ...(isRoot && { isRoot: true }) };
     if (!isRoot) {
       for (const [runAfterAction] of Object.entries(action.runAfter ?? {})) {
         edges.push(createWorkflowEdge(runAfterAction, actionName));
@@ -119,7 +125,6 @@ const buildGraphFromActions = (
 
 const processScopeActions = (
   rootGraphId: string,
-  parentNodeId: string | undefined,
   actionName: string,
   action: LogicAppsV2.ScopeAction
 ): [WorkflowNode[], WorkflowEdge[], Operations, NodesMetadata] => {
@@ -135,7 +140,7 @@ const processScopeActions = (
 
   // For use on scope nodes with a single flow
   const applyActions = (graphId: string, actions?: LogicAppsV2.Actions) => {
-    const [graph, operations, metadata] = processNestedActions(graphId, parentNodeId, actions);
+    const [graph, operations, metadata] = processNestedActions(graphId, graphId, actions);
 
     nodes.push(...(graph.children as []));
     edges.push(...(graph.edges as []));
@@ -145,6 +150,7 @@ const processScopeActions = (
       ...metadata,
       [graphId]: {
         graphId: rootGraphId,
+        parentNodeId: rootGraphId === 'root' ? undefined : rootGraphId,
         actionCount:
           graph.children?.filter(
             (node) =>
@@ -169,7 +175,7 @@ const processScopeActions = (
     subgraphType: SubgraphType,
     subGraphLocation: string | undefined
   ) => {
-    const [graph, operations, metadata] = processNestedActions(subgraphId, parentNodeId, actions, true);
+    const [graph, operations, metadata] = processNestedActions(subgraphId, graphId, actions, true);
     if (!graph?.edges) graph.edges = [];
 
     graph.subGraphLocation = subGraphLocation;
@@ -185,7 +191,7 @@ const processScopeActions = (
     if (isAddCase) graph.type = WORKFLOW_NODE_TYPES.HIDDEN_NODE;
 
     // Connect graph header to subgraph node
-    edges.push(createWorkflowEdge(headerId, rootId, isAddCase ? WORKFLOW_EDGE_TYPES.HIDDEN_EDGE : WORKFLOW_EDGE_TYPES.ONLY_EDGE));
+    edges.push(createWorkflowEdge(headerId, subgraphId, isAddCase ? WORKFLOW_EDGE_TYPES.HIDDEN_EDGE : WORKFLOW_EDGE_TYPES.ONLY_EDGE));
     // Connect subgraph node to all top level nodes
     for (const child of graph.children ?? []) {
       if (metadata[child.id]?.isRoot) graph.edges.push(createWorkflowEdge(rootId, child.id, WORKFLOW_EDGE_TYPES.HEADING_EDGE));
@@ -209,7 +215,7 @@ const processScopeActions = (
     scopeCardNode.id = scopeCardNode.id.replace('#scope', '#subgraph');
     scopeCardNode.type = WORKFLOW_NODE_TYPES.SUBGRAPH_CARD_NODE;
 
-    const [graph, operations, metadata] = processNestedActions(graphId, parentNodeId, actions);
+    const [graph, operations, metadata] = processNestedActions(graphId, graphId, actions);
 
     nodes.push(...(graph?.children ?? []));
     edges.push(...(graph?.edges ?? []));
@@ -220,6 +226,7 @@ const processScopeActions = (
       [graphId]: {
         graphId: rootGraphId,
         subgraphType: SUBGRAPH_TYPES.UNTIL_DO,
+        parentNodeId: rootGraphId === 'root' ? undefined : rootGraphId,
         actionCount:
           graph.children?.filter(
             (node) =>
@@ -250,11 +257,25 @@ const processScopeActions = (
     }
     applySubgraphActions(actionName, `${actionName}-addCase`, undefined, SUBGRAPH_TYPES.SWITCH_ADD_CASE, undefined /* subGraphLocation */);
     applySubgraphActions(actionName, `${actionName}-defaultCase`, action.default?.actions, SUBGRAPH_TYPES.SWITCH_DEFAULT, 'default');
-    nodesMetadata = { ...nodesMetadata, [actionName]: { graphId: rootGraphId, actionCount: Object.entries(action.cases || {}).length } };
+    nodesMetadata = {
+      ...nodesMetadata,
+      [actionName]: {
+        graphId: rootGraphId,
+        actionCount: Object.entries(action.cases || {}).length,
+        parentNodeId: rootGraphId === 'root' ? undefined : rootGraphId,
+      },
+    };
   } else if (isIfAction(action)) {
     applySubgraphActions(actionName, `${actionName}-actions`, action.actions, SUBGRAPH_TYPES.CONDITIONAL_TRUE, 'actions');
     applySubgraphActions(actionName, `${actionName}-elseActions`, action.else?.actions, SUBGRAPH_TYPES.CONDITIONAL_FALSE, 'else');
-    nodesMetadata = { ...nodesMetadata, [actionName]: { graphId: actionName, actionCount: 2 } };
+    nodesMetadata = {
+      ...nodesMetadata,
+      [actionName]: {
+        graphId: rootGraphId,
+        actionCount: 2,
+        parentNodeId: rootGraphId === 'root' ? undefined : rootGraphId,
+      },
+    };
   } else if (isUntilAction(action)) {
     applyUntilActions(actionName, action.actions);
   } else {

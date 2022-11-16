@@ -6,9 +6,12 @@ import type {
   ConnectionParameterSet as ParameterSet,
   ConnectionParameterSetValues,
   ConnectionType,
-  DiscoveryOperation,
-  DiscoveryResultTypes,
 } from '@microsoft-logic-apps/utils';
+
+export interface ConnectorWithSwagger {
+  connector: Connector;
+  swagger: OpenAPIV2.Document;
+}
 
 export interface ConnectionCreationInfo {
   connectionParametersSet?: ConnectionParameterSetValues;
@@ -25,20 +28,32 @@ export interface ConnectionParametersMetadata {
   connectionType: ConnectionType;
 }
 
+export interface CreateConnectionResult {
+  connection?: Connection;
+  errorMessage?: string;
+}
+
 export interface IConnectionService {
   [x: string]: any;
   dispose(): void;
   getConnector(connectorId: string): Promise<Connector>;
+  getConnectorAndSwagger(connectorId: string): Promise<ConnectorWithSwagger>;
+  getSwaggerFromUri(uri: string): Promise<OpenAPIV2.Document>;
   getConnection(connectionId: string): Promise<Connection>;
   getConnections(connectorId?: string): Promise<Connection[]>;
-  getAllConnectors(): Promise<Connector[]>;
-  getAllOperations(): Promise<DiscoveryOperation<DiscoveryResultTypes>[]>;
   createConnection(
     connectionId: string,
-    connectorId: string,
+    connector: Connector,
     connectionInfo: ConnectionCreationInfo,
     parametersMetadata?: ConnectionParametersMetadata
   ): Promise<Connection>;
+  createAndAuthorizeOAuthConnection(
+    connectionId: string,
+    connectorId: string,
+    connectionInfo: ConnectionCreationInfo,
+    parametersMetadata: ConnectionParametersMetadata
+  ): Promise<CreateConnectionResult>;
+  getUniqueConnectionName(connectorId: string, connectionNames: string[], connectorName: string): Promise<string>;
 }
 
 let service: IConnectionService;

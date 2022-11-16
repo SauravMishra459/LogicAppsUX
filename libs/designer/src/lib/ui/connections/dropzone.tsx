@@ -1,4 +1,7 @@
+import type { RootState } from '../../core';
 import { expandDiscoveryPanel } from '../../core/state/panel/panelSlice';
+import { useAllGraphParents } from '../../core/state/workflow/workflowSelectors';
+import { getTriggerNode } from '../../core/utils/graph';
 import { AllowDropTarget } from './dynamicsvgs/allowdroptarget';
 import { BlockDropTarget } from './dynamicsvgs/blockdroptarget';
 import AddBranchIcon from './edgeContextMenuSvgs/addBranchIcon.svg';
@@ -6,12 +9,12 @@ import AddNodeIcon from './edgeContextMenuSvgs/addNodeIcon.svg';
 import { ActionButton, Callout, DirectionalHint } from '@fluentui/react';
 import { useBoolean } from '@fluentui/react-hooks';
 import { css } from '@fluentui/utilities';
-import { guid } from '@microsoft-logic-apps/utils';
+import { guid, WORKFLOW_NODE_TYPES } from '@microsoft-logic-apps/utils';
 import { ActionButtonV2 } from '@microsoft/designer-ui';
 import { useCallback } from 'react';
 import { useDrop } from 'react-dnd';
 import { useIntl } from 'react-intl';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 export interface DropZoneProps {
   graphId: string;
@@ -22,7 +25,10 @@ export interface DropZoneProps {
 export const DropZone: React.FC<DropZoneProps> = ({ graphId, parentId, childId }) => {
   const intl = useIntl();
   const dispatch = useDispatch();
-
+  const isAddingTrigger = useSelector((state: RootState) => {
+    const triggerNode = getTriggerNode(state.workflow);
+    return triggerNode.type === WORKFLOW_NODE_TYPES.PLACEHOLDER_NODE;
+  });
   const [showCallout, { toggle: toggleIsCalloutVisible }] = useBoolean(false);
 
   const newActionText = intl.formatMessage({
@@ -37,34 +43,33 @@ export const DropZone: React.FC<DropZoneProps> = ({ graphId, parentId, childId }
 
   const openAddNodePanel = useCallback(() => {
     const newId = guid();
-    dispatch(
-      expandDiscoveryPanel({
-        nodeId: newId,
-        discoveryIds: {
-          graphId,
-          childId,
-          parentId,
-        },
-      })
-    );
+    const relationshipIds = { graphId, childId, parentId };
+    dispatch(expandDiscoveryPanel({ nodeId: newId, relationshipIds }));
   }, [dispatch, graphId, childId, parentId]);
 
   const addParallelBranch = useCallback(() => {
-    // TODO: Implement parallel branching
-    alert('Add parallel branch');
-  }, []);
+    const newId = guid();
+    const relationshipIds = { graphId, childId: undefined, parentId };
+    dispatch(expandDiscoveryPanel({ nodeId: newId, relationshipIds, isParallelBranch: true }));
+  }, [dispatch, graphId, parentId]);
 
-  const [{ isOver, canDrop }, drop] = useDrop(() => ({
-    // The type (or types) to accept - strings or symbols
-    accept: 'BOX',
-    drop: () => ({ child: childId, parent: parentId }), // danielle check this, graph id
-    canDrop: (item) => (item as any).id !== childId,
-    // Props to collect
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
+  const graphParents = useAllGraphParents(graphId);
+
+  const [{ isOver, canDrop }, drop] = useDrop(
+    () => ({
+      accept: 'BOX',
+      drop: () => ({ graphId, parentId, childId }),
+      canDrop: (item: any) => {
+        if (graphParents.includes(item.id)) return false;
+        return item.id !== childId && item.id !== parentId;
+      },
+      collect: (monitor) => ({
+        isOver: monitor.isOver(),
+        canDrop: monitor.canDrop(),
+      }),
     }),
-  }));
+    [graphId, parentId, childId]
+  );
 
   const tooltipText = intl.formatMessage({
     defaultMessage: 'Insert a new step',
@@ -76,7 +81,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ graphId, parentId, childId }
     toggleIsCalloutVisible();
   };
 
-  const buttonId = `msla-edge-button-${parentId?.replace('#', '')}-${childId?.replace('#', '')}`;
+  const buttonId = `msla-edge-button-${parentId}-${childId}`.replace(/[^a-zA-Z-_ ]/g, '');
 
   return (
     <div
@@ -89,7 +94,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ graphId, parentId, childId }
           {canDrop ? <AllowDropTarget fill="#0078D4" /> : <BlockDropTarget fill="#797775" />}
         </div>
       )}
-      {!isOver && (
+      {!isOver && !isAddingTrigger && (
         <>
           <ActionButtonV2 id={buttonId} title={tooltipText} onClick={actionButtonClick} />
           {showCallout && (
@@ -105,7 +110,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ graphId, parentId, childId }
                 <ActionButton iconProps={{ imageProps: { src: AddNodeIcon } }} onClick={openAddNodePanel}>
                   {newActionText}
                 </ActionButton>
-                {childId ? (
+                {childId && parentId ? (
                   <ActionButton iconProps={{ imageProps: { src: AddBranchIcon } }} onClick={addParallelBranch}>
                     {newBranchText}
                   </ActionButton>

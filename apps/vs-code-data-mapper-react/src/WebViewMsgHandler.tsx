@@ -1,12 +1,23 @@
-import { dataMapDataLoaderSlice } from './state/DataMapDataLoader';
-import { schemaDataLoaderSlice } from './state/SchemaDataLoader';
+import {
+  changeMapDefinition,
+  changeRuntimePort,
+  changeSchemaList,
+  changeSourceSchemaFilename,
+  changeTargetSchemaFilename,
+  changeXsltFilename,
+} from './state/DataMapDataLoader';
 import type { AppDispatch } from './state/Store';
-import type { Schema, DataMap } from '@microsoft/logic-apps-data-mapper';
-import React, { createContext, useCallback } from 'react';
+import type { MapDefinitionEntry } from '@microsoft/logic-apps-data-mapper';
+import React, { createContext } from 'react';
 import { useDispatch } from 'react-redux';
 import type { WebviewApi } from 'vscode-webview';
 
-type ReceivingMessageTypes = { command: 'loadInputSchema' | 'loadOutputSchema'; data: Schema } | { command: 'loadDataMap'; data: DataMap };
+type ReceivingMessageTypes =
+  | { command: 'fetchSchema'; data: { fileName: string; type: 'source' | 'target' } }
+  | { command: 'loadDataMap'; data: { mapDefinition: MapDefinitionEntry; sourceSchemaFileName: string; targetSchemaFileName: string } }
+  | { command: 'showAvailableSchemas'; data: string[] }
+  | { command: 'setXsltFilename'; data: string }
+  | { command: 'setRuntimePort'; data: string };
 
 const vscode: WebviewApi<unknown> = acquireVsCodeApi();
 export const VSCodeContext = createContext(vscode);
@@ -19,41 +30,35 @@ export const WebViewMsgHandler: React.FC<{ children: React.ReactNode }> = ({ chi
   window.addEventListener('message', (event: MessageEvent<ReceivingMessageTypes>) => {
     const msg = event.data;
 
+    // NOTE: app.tsx handles all API calls (GET schemaTree, GET functions) as it's where DmApiService is initialized
     switch (msg.command) {
-      case 'loadInputSchema':
-        changeInputSchemaCB(msg.data);
+      case 'setRuntimePort':
+        dispatch(changeRuntimePort(msg.data));
         break;
-      case 'loadOutputSchema':
-        changeOutputSchemaCB(msg.data);
+      case 'fetchSchema':
+        if (msg.data.type === 'source') {
+          dispatch(changeSourceSchemaFilename(msg.data.fileName));
+        } else {
+          dispatch(changeTargetSchemaFilename(msg.data.fileName));
+        }
         break;
       case 'loadDataMap':
-        changeDataMapCB(msg.data);
+        // NOTE: DataMapDataProvider ensures the functions and schemas are loaded before loading the mapDefinition connections
+        dispatch(changeSourceSchemaFilename(msg.data.sourceSchemaFileName));
+        dispatch(changeTargetSchemaFilename(msg.data.targetSchemaFileName));
+        dispatch(changeMapDefinition(msg.data.mapDefinition));
+        break;
+      case 'showAvailableSchemas':
+        dispatch(changeSchemaList(msg.data));
+        break;
+      case 'setXsltFilename':
+        dispatch(changeXsltFilename(msg.data));
         break;
       default:
-        console.error(`Unexpected message received: ${msg}`);
+        console.warn(`Unexpected message received:`);
+        console.warn(msg);
     }
   });
-
-  const changeInputSchemaCB = useCallback(
-    (newSchema: Schema) => {
-      dispatch(schemaDataLoaderSlice.actions.changeInputSchema(newSchema));
-    },
-    [dispatch]
-  );
-
-  const changeOutputSchemaCB = useCallback(
-    (newSchema: Schema) => {
-      dispatch(schemaDataLoaderSlice.actions.changeOutputSchema(newSchema));
-    },
-    [dispatch]
-  );
-
-  const changeDataMapCB = useCallback(
-    (newDataMap: DataMap) => {
-      dispatch(dataMapDataLoaderSlice.actions.changeDataMap(newDataMap));
-    },
-    [dispatch]
-  );
 
   return <VSCodeContext.Provider value={vscode}>{children}</VSCodeContext.Provider>;
 };

@@ -30,7 +30,7 @@ export const BrowseGrid = (props: BrowseGridProps) => {
               key={connector.id}
               id={connector.id}
               connectorName={properties.displayName}
-              description={properties['description'] || ''}
+              description={properties.description || properties.generalInformation?.description}
               iconUrl={properties.iconUri}
               brandColor={properties.brandColor}
               onClick={props.onConnectorSelected}
@@ -44,7 +44,7 @@ export const BrowseGrid = (props: BrowseGridProps) => {
   );
 
   return (
-    <div ref={ref} className="msla-result-list">
+    <div ref={ref} className="msla-browse-list">
       <List onRenderCell={onRenderCell} items={props.connectorBrowse} getPageHeight={() => (forceSingleCol ? 80 * 10 : 80 * 5)} />
     </div>
   );

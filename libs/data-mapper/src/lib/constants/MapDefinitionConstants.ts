@@ -1,15 +1,30 @@
-export const YamlFormats = {
-  indentGap: '  ',
-  newLine: '\n',
+export const reservedMapDefinitionKeys = {
+  version: '$version',
+  sourceFormat: '$input',
+  targetFormat: '$output',
+  sourceSchemaName: '$sourceSchema',
+  targetSchemaName: '$targetSchema',
+  sourceNamespaces: '$sourceNamespaces',
+  targetNamespaces: '$targetNamespaces',
 };
 
-export const MapDefinitionProperties = {
-  SourceSchema: '$sourceSchema',
-  TargetSchema: '$targetSchema',
+// Should contain a list of all the reserved keys from above
+export const reservedMapDefinitionKeysArray: string[] = [
+  reservedMapDefinitionKeys.version,
+  reservedMapDefinitionKeys.sourceFormat,
+  reservedMapDefinitionKeys.targetFormat,
+  reservedMapDefinitionKeys.sourceSchemaName,
+  reservedMapDefinitionKeys.targetSchemaName,
+  reservedMapDefinitionKeys.sourceNamespaces,
+  reservedMapDefinitionKeys.targetNamespaces,
+];
+
+export const mapNodeParams = {
+  for: '$for',
+  if: '$if',
+  value: '$value',
 };
 
-export const MapNodeParams = {
-  For: '$for',
-  If: '$if',
-  Value: '$value',
-};
+export const mapDefinitionVersion = '1.0';
+
+export const customValueQuoteToken = 'quot219837189273';

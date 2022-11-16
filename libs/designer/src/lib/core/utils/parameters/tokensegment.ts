@@ -44,10 +44,10 @@ export class TokenSegmentConvertor {
           : expression.expression.substring(expression.startPosition, expression.endPosition);
       return createTokenValueSegment(createVariableToken(variableName), value);
     } else if (TokenSegmentConvertor.isItemToken(expression)) {
-      // TODO - Implement for item tokens
+      // TODO - Implement for item tokens when repetition context is in store.
       return null;
     } else if (TokenSegmentConvertor.isItemsToken(expression)) {
-      // TODO - Implement for items tokens
+      // TODO - Implement for items tokens when repetition context is in store.
       return null;
     } else if (TokenSegmentConvertor.isIterationIndexesToken(expression)) {
       const functionArguments = expression.arguments;
@@ -238,7 +238,7 @@ export class TokenSegmentConvertor {
         break;
     }
 
-    // TODO(tonytang): Please fix the below logic, it seems redundant to check and return the same output source.
+    // TODO: Please fix the below logic, it seems redundant to check and return the same output source.
     if (dereferences.length >= 1) {
       const dereferenceExpression = dereferences[0].expression;
       if (isStringLiteral(dereferenceExpression)) {

@@ -2,23 +2,6 @@
   "definition": {
     "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
     "actions": {
-      "For_each": {
-        "actions": {
-          "Set_variable": {
-            "inputs": {
-              "name": "stringvar",
-              "value": "fgfgfg"
-            },
-            "runAfter": {},
-            "type": "SetVariable"
-          }
-        },
-        "foreach": "@triggerBody()['array']",
-        "runAfter": {
-          "Parse_JSON": ["Succeeded"]
-        },
-        "type": "Foreach"
-      },
       "Initialize_variable": {
         "inputs": {
           "variables": [
@@ -32,15 +15,20 @@
         "runAfter": {},
         "type": "InitializeVariable"
       },
-      "Join": {
+      "Initialize_variable_1": {
         "inputs": {
-          "from": "@triggerBody()",
-          "joinWith": "111"
+          "variables": [
+            {
+              "name": "IntegerVar",
+              "type": "integer",
+              "value": "test@{triggerOutputs()['headers']}@{variables('stringvar')}"
+            }
+          ]
         },
         "runAfter": {
-          "Parse_JSON": ["Succeeded"]
+          "Initialize_variable": ["SUCCEEDED"]
         },
-        "type": "Join"
+        "type": "InitializeVariable"
       },
       "Parse_JSON": {
         "inputs": {
@@ -58,20 +46,30 @@
           }
         },
         "runAfter": {
-          "Initialize_variable": ["Succeeded"]
+          "Initialize_variable_1": ["SUCCEEDED"]
+        },
+        "runtimeConfiguration": {
+          "secureData": {
+            "properties": ["inputs"]
+          }
         },
         "type": "ParseJson"
       },
-      "Response": {
-        "inputs": {
-          "body": "@{triggerBody()?['string']}@{triggerOutputs()?['headers']}@{body('Parse_JSON')?['number']}",
-          "statusCode": 200
+      "For_each": {
+        "type": "Foreach",
+        "foreach": "@body('Parse_JSON')",
+        "actions": {
+          "Response": {
+            "type": "Response",
+            "kind": "Http",
+            "inputs": {
+              "statusCode": 200
+            }
+          }
         },
-        "kind": "http",
         "runAfter": {
-          "Join": ["Succeeded"]
-        },
-        "type": "Response"
+          "Parse_JSON": ["SUCCEEDED"]
+        }
       }
     },
     "contentVersion": "1.0.0.0",

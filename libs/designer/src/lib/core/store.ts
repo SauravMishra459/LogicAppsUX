@@ -6,6 +6,7 @@ import panelReducer from './state/panel/panelSlice';
 import settingsReducer from './state/settingSlice';
 import tokens from './state/tokensSlice';
 import workflowReducer from './state/workflow/workflowSlice';
+import workflowParametersReducer from './state/workflowparameters/workflowparametersSlice';
 import { configureStore } from '@reduxjs/toolkit';
 
 export const store = configureStore({
@@ -18,12 +19,17 @@ export const store = configureStore({
     designerOptions: designerOptionsReducer,
     designerView: designerViewReducer,
     tokens: tokens,
+    workflowParameters: workflowParametersReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,
     }),
 });
+
+if (process.env.NODE_ENV === 'development') {
+  (window as any).DesignerStore = store;
+}
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof store.getState>;

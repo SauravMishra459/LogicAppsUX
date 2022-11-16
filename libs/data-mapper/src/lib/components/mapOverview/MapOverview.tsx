@@ -1,80 +1,63 @@
-import { openInputSchemaPanel, openOutputSchemaPanel } from '../../core/state/PanelSlice';
-import type { AppDispatch } from '../../core/state/Store';
+import { SchemaType } from '../../models/';
 import type { SchemaExtended } from '../../models/';
-import { SchemaTypes } from '../../models/';
-import { convertToReactFlowParentAndChildNodes } from '../../utils/ReactFlow.Util';
-import { SchemaCard } from '../nodeCard/SchemaCard';
-import { SelectSchemaCard } from '../schemaSelection/selectSchemaCard';
-import { useMemo } from 'react';
-import type { Node as ReactFlowNode } from 'react-flow-renderer';
-import ReactFlow, { ReactFlowProvider } from 'react-flow-renderer';
-import { useDispatch } from 'react-redux';
+import { SelectSchemaCard } from '../schemaSelection/SelectSchemaCard';
+import { ReactFlowSchemaOverview } from './ReactFlowSchemaOverview';
+import { Stack } from '@fluentui/react';
+import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
+// eslint-disable-next-line import/no-named-as-default
+import { ReactFlowProvider } from 'reactflow';
+
+const useStyles = makeStyles({
+  mapOverviewStyles: {
+    height: '100%',
+    width: '100%',
+    backgroundColor: tokens.colorNeutralBackground6,
+    minHeight: 0,
+    ...shorthands.overflow('hidden'),
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+  },
+  schemaCardStackStyles: {
+    height: '100%',
+    width: '50%',
+  },
+});
 
 export interface MapOverviewProps {
-  inputSchema?: SchemaExtended;
-  outputSchema?: SchemaExtended;
+  sourceSchema?: SchemaExtended;
+  targetSchema?: SchemaExtended;
 }
 
-export const MapOverview: React.FC<MapOverviewProps> = ({ inputSchema, outputSchema }: MapOverviewProps) => {
-  const dispatch = useDispatch<AppDispatch>();
-
-  const reactFlowNodes = useMemo(() => {
-    const reactFlowNodes: ReactFlowNode[] = [];
-    if (inputSchema) {
-      reactFlowNodes.push(...convertToReactFlowParentAndChildNodes(inputSchema.schemaTreeRoot, SchemaTypes.Input, false));
-    }
-
-    if (outputSchema) {
-      reactFlowNodes.push(...convertToReactFlowParentAndChildNodes(outputSchema.schemaTreeRoot, SchemaTypes.Output, false));
-    }
-
-    return reactFlowNodes;
-  }, [inputSchema, outputSchema]);
-
-  const onInputSchemaClick = () => {
-    dispatch(openInputSchemaPanel());
-  };
-  const onOutputSchemaClick = () => {
-    dispatch(openOutputSchemaPanel());
-  };
-
-  const reactFlowStyle = {
-    background: '#e0e0e0',
-    height: '600px',
-  };
-
-  const nodeTypes = useMemo(() => ({ schemaNode: SchemaCard }), []);
-
-  const layeredReactFlow = (
-    <div className="msla-designer-canvas msla-panel-mode">
-      <ReactFlowProvider>
-        <ReactFlow
-          nodes={reactFlowNodes}
-          nodesDraggable={false}
-          fitView
-          panOnDrag={false}
-          zoomOnDoubleClick={false}
-          zoomOnPinch={false}
-          zoomOnScroll={false}
-          proOptions={{
-            account: 'paid-sponsor',
-            hideAttribution: true,
-          }}
-          nodeTypes={nodeTypes}
-          style={reactFlowStyle}
-        ></ReactFlow>
-      </ReactFlowProvider>
-    </div>
-  );
+export const MapOverview = ({ sourceSchema, targetSchema }: MapOverviewProps) => {
+  const styles = useStyles();
 
   return (
-    <div className="msla-designer-canvas msla-panel-mode not-loaded" style={reactFlowStyle}>
-      <div className="left">
-        {inputSchema ? layeredReactFlow : <SelectSchemaCard schemaType={SchemaTypes.Input} onClick={onInputSchemaClick} />}
-      </div>
-      <div className="right">
-        {outputSchema ? layeredReactFlow : <SelectSchemaCard schemaType={SchemaTypes.Output} onClick={onOutputSchemaClick} />}
-      </div>
+    <div className={styles.mapOverviewStyles}>
+      <Stack verticalAlign="center" className={styles.schemaCardStackStyles}>
+        {sourceSchema ? (
+          <ReactFlowProvider>
+            <ReactFlowSchemaOverview schema={sourceSchema} schemaType={SchemaType.Source} />
+          </ReactFlowProvider>
+        ) : (
+          <SelectSchemaCard schemaType={SchemaType.Source} />
+        )}
+      </Stack>
+
+      <Stack verticalAlign="center" className={styles.schemaCardStackStyles}>
+        {targetSchema ? (
+          <ReactFlowProvider>
+            <ReactFlowSchemaOverview
+              schema={targetSchema}
+              schemaType={SchemaType.Target}
+              shouldTargetSchemaDisplayChevrons={!!sourceSchema && !!targetSchema}
+            />
+          </ReactFlowProvider>
+        ) : (
+          <SelectSchemaCard schemaType={SchemaType.Target} />
+        )}
+      </Stack>
     </div>
   );
 };

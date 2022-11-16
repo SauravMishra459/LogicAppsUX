@@ -330,8 +330,6 @@ export function getStatusString(status: string, hasRetries: boolean): string {
   }
 }
 
-export const getIdLeaf = (id?: string): string => id?.split('/').at(-1) ?? '';
-
 export const filterRecord = <T>(data: Record<string, T>, filter: (_key: string, _val: any) => boolean): Record<string, T> => {
   return Object.entries(data)
     .filter(([key, value]) => filter(key, value))
@@ -341,12 +339,12 @@ export const filterRecord = <T>(data: Record<string, T>, filter: (_key: string, 
 export const getConnectorCategoryString = (connectorId: string): string => {
   const intl = getIntl();
   const builtInText = intl.formatMessage({
-    defaultMessage: 'Built-in',
-    description: '"Built-in" category name',
+    defaultMessage: 'In App',
+    description: '"In App" category name',
   });
   const azureText = intl.formatMessage({
-    defaultMessage: 'Azure',
-    description: 'Azure name text (not sure if this changes in different languages)',
+    defaultMessage: 'Shared',
+    description: 'Shared category name text',
   });
 
   return isBuiltInConnector(connectorId) ? builtInText : azureText;

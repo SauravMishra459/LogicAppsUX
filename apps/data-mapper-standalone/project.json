@@ -16,7 +16,7 @@
         "styles": ["apps/data-mapper-standalone/src/styles.less"],
         "scripts": [],
         "statsJson": true,
-        "webpackConfig": "@nrwl/react/plugins/webpack"
+        "webpackConfig": "custom-webpack.config.js"
       },
       "configurations": {
         "production": {
@@ -52,7 +52,11 @@
       "configurations": {
         "production": {
           "buildTarget": "data-mapper-standalone:build:production",
-          "hmr": false
+          "hmr": false,
+          "host": "localhost",
+          "ssl": true,
+          "sslKey": "local-key.pem",
+          "sslCert": "local-cert.pem"
         },
         "development": {
           "buildTarget": "data-mapper-standalone:build:development"

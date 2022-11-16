@@ -1,10 +1,43 @@
 import type { EnumObject, OutputMetadata, ParameterDynamicSchema, ParameterDynamicValues } from '../../models/operation';
 import { DynamicSchemaType, DynamicValuesType } from '../../models/operation';
 import * as Constants from '../constants';
+import { OutputKeys } from '../constants';
+import { parseEx } from './keysutility';
 import { getIntl } from '@microsoft-logic-apps/intl';
 import { equals, isNullOrUndefined } from '@microsoft-logic-apps/utils';
 
 type SchemaObject = OpenAPIV2.SchemaObject;
+type Parameter = OpenAPIV2.ParameterObject;
+
+export function toSwaggerSchema(parameter: Parameter | OpenAPIV2.ItemsObject): SchemaObject {
+  const schema: SchemaObject = {
+    format: parameter.format,
+    description: (parameter as Parameter).description,
+    default: parameter.default,
+    multipleOf: parameter.multipleOf,
+    maximum: parameter.maximum,
+    exclusiveMaximum: parameter.exclusiveMaximum,
+    minimum: parameter.minimum,
+    exclusiveMinimum: parameter.exclusiveMinimum,
+    maxLength: parameter.maxLength,
+    minLength: parameter.minLength,
+    pattern: parameter.pattern,
+    maxItems: parameter.maxItems,
+    minItems: parameter.minItems,
+    uniqueItems: parameter.uniqueItems,
+    enum: parameter.enum,
+    type: parameter.type,
+    items: parameter.items ? toSwaggerSchema(parameter.items) : undefined,
+  };
+
+  for (const propertyName of Object.getOwnPropertyNames(parameter)) {
+    if (propertyName.startsWith('x-ms-')) {
+      schema[propertyName] = (parameter as Parameter)[propertyName];
+    }
+  }
+
+  return schema;
+}
 
 export function getEnum(parameter: SchemaObject, required: boolean | undefined): EnumObject[] | undefined {
   if (parameter.enum) {
@@ -126,9 +159,9 @@ export function getArrayOutputMetadata(schema: SchemaObject, required: boolean, 
       return !(excludeInternal && equals(property[Constants.ExtensionProperties.Visibility], Constants.Visibility.Internal));
     });
 
-    // TODO(psamband): Currently this method returns the array details of the output where the trigger needs to do splitOn.
+    // TODO: Currently this method returns the array details of the output where the trigger needs to do splitOn.
     // Ideally this should be done by the caller and response process should just return all top level array details.
-    // NOTE(johnwa): if the logic combining prefix changed,
+    // NOTE: if the logic combining prefix changed,
     // dynamicparametershelper.getSchemaProcessorOptionsForDynamicOutputs needs to update accordingly.
     if (keys.length === 1) {
       const firstKey = keys[0];
@@ -190,4 +223,48 @@ function makeDefinition($refs: Record<string, any>): MakeDefinitionReducer {
     const { type } = $refs[current];
     return { ...previous, [current]: type };
   };
+}
+
+export function getKnownTitles(name: string): string {
+  const intl = getIntl();
+  switch (name) {
+    case OutputKeys.Body:
+      return intl.formatMessage({ defaultMessage: 'Body', description: 'Display name for body outputs' });
+    case OutputKeys.Headers:
+      return intl.formatMessage({ defaultMessage: 'Headers', description: 'Display name for headers in outputs' });
+    case OutputKeys.Outputs:
+      return intl.formatMessage({ defaultMessage: 'Outputs', description: 'Display name for operation outputs' });
+    case OutputKeys.Queries:
+      return intl.formatMessage({ defaultMessage: 'Queries', description: 'Display name for queries in outputs' });
+    case OutputKeys.StatusCode:
+      return intl.formatMessage({ defaultMessage: 'Status Code', description: 'Display name for status code in outputs' });
+    case OutputKeys.Item:
+      return intl.formatMessage({ defaultMessage: 'Item', description: 'Display name for item output' });
+    case OutputKeys.PathParameters:
+      return intl.formatMessage({
+        defaultMessage: 'Path Parameters',
+        description: 'Display name for relative path parameters in trigger outputs',
+      });
+    default:
+      // eslint-disable-next-line no-case-declarations
+      const segments = parseEx(name);
+      return segments.length ? String(segments[segments.length - 1].value) : '';
+  }
+}
+
+export function getKnownTitlesFromKey(key: string): string | undefined {
+  switch (key?.toLowerCase()) {
+    case '$.body':
+      return getKnownTitles(OutputKeys.Body);
+    case '$.headers':
+      return getKnownTitles(OutputKeys.Headers);
+    case '$.queries':
+      return getKnownTitles(OutputKeys.Queries);
+    case '$.pathparameters':
+      return getKnownTitles(OutputKeys.PathParameters);
+    case '$.statuscode':
+      return getKnownTitles(OutputKeys.StatusCode);
+    default:
+      return undefined;
+  }
 }

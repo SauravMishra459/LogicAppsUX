@@ -1,27 +1,46 @@
-import { SchemaTypes } from '../../models';
-import type { SchemaCardWrapperProps } from './SchemaCard';
-import { SchemaCardWrapper } from './SchemaCard';
+import { NormalizedDataType, SchemaNodeDataType, SchemaNodeProperty, SchemaType } from '../../models';
+import type { SchemaCardProps } from './SchemaCard';
+import { SchemaCard } from './SchemaCard';
 import type { ComponentMeta, ComponentStory } from '@storybook/react';
 import React from 'react';
-import { ReactFlowProvider } from 'react-flow-renderer';
+import type { NodeProps } from 'reactflow';
+import { ReactFlowProvider } from 'reactflow';
 
 export default {
-  component: SchemaCardWrapper,
-  title: 'Data Mapper/SchemaCard',
-} as ComponentMeta<typeof SchemaCardWrapper>;
+  component: SchemaCard,
+  title: 'Data Mapper Components/Card/Schema Card',
+} as ComponentMeta<typeof SchemaCard>;
 
-export const Standard: ComponentStory<typeof SchemaCardWrapper> = (args: SchemaCardWrapperProps) => (
+export const Standard: ComponentStory<typeof SchemaCard> = (args: NodeProps<SchemaCardProps>) => (
   <div style={{ padding: '10px' }}>
     <ReactFlowProvider>
-      <SchemaCardWrapper {...args} />
+      <SchemaCard {...args} />
     </ReactFlowProvider>
   </div>
 );
 Standard.args = {
-  label: 'label',
-  schemaType: SchemaTypes.Input,
-  displayHandle: false,
-  isLeaf: false,
-  onClick: () => console.log('Schema card clicked'),
-  disabled: false,
+  data: {
+    schemaNode: {
+      key: 'key',
+      name: 'Name',
+      fullName: 'key',
+      namespacePrefix: '',
+      namespaceUri: '',
+      schemaNodeDataType: SchemaNodeDataType.String,
+      normalizedDataType: NormalizedDataType.String,
+      properties: SchemaNodeProperty.NotSpecified,
+      nodeProperties: [SchemaNodeProperty.NotSpecified],
+      children: [],
+      pathToRoot: [],
+    },
+    schemaType: SchemaType.Source,
+    displayHandle: false,
+    isLeaf: false,
+    isChild: false,
+    displayChevron: false,
+    relatedConnections: [],
+    onClick: () => console.log('Schema card clicked'),
+    disabled: false,
+    error: false,
+  },
 };

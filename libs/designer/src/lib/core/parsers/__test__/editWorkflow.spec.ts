@@ -1,11 +1,12 @@
-import { createNodeWithDefaultSize, addNodeToWorkflow } from '../addNodeToWorkflow';
+import { createWorkflowNode } from '../../utils/graph';
+import { addNodeToWorkflow } from '../addNodeToWorkflow';
 import type { WorkflowNode } from '../models/workflowNode';
 import { initialState, mockGraph } from './mocks/workflowMock';
 
 describe('edit workflow', () => {
   let graph: WorkflowNode;
 
-  const nodeToAdd = createNodeWithDefaultSize('post_in_teams');
+  const nodeToAdd = createWorkflowNode('post_in_teams');
 
   beforeEach(() => {
     graph = mockGraph;
@@ -19,9 +20,11 @@ describe('edit workflow', () => {
 
     addNodeToWorkflow(
       {
-        operation: {} as any,
-        id: 'post_in_teams',
-        discoveryIds: {
+        operation: {
+          type: nodeToAdd.type,
+        } as any,
+        nodeId: nodeToAdd.id,
+        relationshipIds: {
           graphId: graph.id,
           parentId: parentId,
           childId: childId,
@@ -43,9 +46,11 @@ describe('edit workflow', () => {
 
     addNodeToWorkflow(
       {
-        operation: {} as any,
-        id: 'post_in_teams',
-        discoveryIds: {
+        operation: {
+          type: nodeToAdd.type,
+        } as any,
+        nodeId: nodeToAdd.id,
+        relationshipIds: {
           graphId: graph.id,
           parentId: parentId,
           childId: undefined,

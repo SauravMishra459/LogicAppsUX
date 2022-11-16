@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
+import type { AppDispatch } from '../../core';
+import { deleteOperation } from '../../core/actions/bjsworkflow/delete';
+import { moveOperation } from '../../core/actions/bjsworkflow/move';
 import { useMonitoringView, useReadOnly } from '../../core/state/designerOptions/designerOptionsSelectors';
 import { useIsNodeSelected } from '../../core/state/panel/panelSelectors';
-import { changePanelNode } from '../../core/state/panel/panelSlice';
+import { changePanelNode, showDefaultTabs } from '../../core/state/panel/panelSlice';
 import {
   useBrandColor,
   useIconUri,
@@ -9,58 +12,76 @@ import {
   useNodeConnectionName,
   useOperationInfo,
 } from '../../core/state/selectors/actionMetadataSelector';
-import { useIsLeafNode, useNodeDescription, useNodeMetadata } from '../../core/state/workflow/workflowSelectors';
+import { useIsLeafNode, useNodeDescription, useNodeDisplayName, useNodeMetadata } from '../../core/state/workflow/workflowSelectors';
 import { DropZone } from '../connections/dropzone';
-import { labelCase } from '@microsoft-logic-apps/utils';
-import { Card } from '@microsoft/designer-ui';
-import { memo, useCallback, useMemo } from 'react';
+import { WORKFLOW_NODE_TYPES } from '@microsoft-logic-apps/utils';
+import type { MenuItemOption } from '@microsoft/designer-ui';
+import { Card, MenuItemType, DeleteNodeModal } from '@microsoft/designer-ui';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useDrag } from 'react-dnd';
-import { Handle, Position } from 'react-flow-renderer';
-import type { NodeProps } from 'react-flow-renderer';
+import { useIntl } from 'react-intl';
 import { useDispatch } from 'react-redux';
+import { Handle, Position } from 'reactflow';
+import type { NodeProps } from 'reactflow';
 
-const DefaultNode = ({ data, targetPosition = Position.Top, sourcePosition = Position.Bottom, id }: NodeProps) => {
+const DefaultNode = ({ targetPosition = Position.Top, sourcePosition = Position.Bottom, id }: NodeProps) => {
   const readOnly = useReadOnly();
   const isMonitoringView = useMonitoringView();
+  const intl = useIntl();
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+
+  const metadata = useNodeMetadata(id);
+  const operationInfo = useOperationInfo(id);
+  const isTrigger = useMemo(() => metadata?.graphId === 'root' && metadata?.isRoot, [metadata]);
 
   const [{ isDragging }, drag, dragPreview] = useDrag(
     () => ({
       type: 'BOX',
       end: (item, monitor) => {
-        const dropResult = monitor.getDropResult<{ parent: string; child: string }>();
+        const dropResult = monitor.getDropResult<{
+          graphId: string;
+          parentId: string;
+          childId: string;
+        }>();
         if (item && dropResult) {
-          alert(`You dropped ${id} between ${dropResult.parent} and  ${dropResult.child}!`);
+          dispatch(
+            moveOperation({
+              nodeId: id,
+              oldGraphId: metadata?.graphId ?? 'root',
+              newGraphId: dropResult.graphId,
+              relationshipIds: dropResult,
+            })
+          );
         }
       },
       item: {
         id: id,
       },
-      canDrag: !readOnly,
+      canDrag: !readOnly && !isTrigger,
       collect: (monitor) => ({
         isDragging: monitor.isDragging(),
       }),
     }),
-    [readOnly]
+    [readOnly, metadata]
   );
 
   const selected = useIsNodeSelected(id);
-  const metadata = useNodeMetadata(id);
   const nodeComment = useNodeDescription(id);
-  const operationInfo = useOperationInfo(id);
   const connectionResult = useNodeConnectionName(id);
   const isConnectionRequired = useIsConnectionRequired(operationInfo);
   const isLeaf = useIsLeafNode(id);
 
   const showLeafComponents = useMemo(() => !readOnly && isLeaf, [readOnly, isLeaf]);
 
-  const nodeClick = useCallback(() => dispatch(changePanelNode(id)), [dispatch, id]);
+  const nodeClick = useCallback(() => {
+    dispatch(changePanelNode(id));
+    dispatch(showDefaultTabs());
+  }, [dispatch, id]);
 
-  const brandColorResult = useBrandColor(operationInfo);
-  const iconUriResult = useIconUri(operationInfo);
+  const brandColor = useBrandColor(id);
+  const iconUri = useIconUri(id);
 
-  const brandColor = brandColorResult.result;
   const comment = useMemo(
     () =>
       nodeComment
@@ -74,15 +95,46 @@ const DefaultNode = ({ data, targetPosition = Position.Top, sourcePosition = Pos
     [brandColor, nodeComment]
   );
 
-  const label = labelCase(data.label);
+  const label = useNodeDisplayName(id);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const handleDeleteClick = () => setShowDeleteModal(true);
+  const handleDelete = () => dispatch(deleteOperation({ nodeId: id, isTrigger: !!isTrigger }));
+
+  const getDeleteMenuItem = () => {
+    const deleteDescription = intl.formatMessage({
+      defaultMessage: 'Delete',
+      description: 'Delete text',
+    });
+
+    const disableTriggerDeleteText = intl.formatMessage({
+      defaultMessage: 'Triggers cannot be deleted.',
+      description: 'Text to explain that triggers cannot be deleted',
+    });
+
+    return {
+      key: deleteDescription,
+      disabled: readOnly,
+      disabledReason: disableTriggerDeleteText,
+      iconName: 'Delete',
+      title: deleteDescription,
+      type: MenuItemType.Advanced,
+      onClick: handleDeleteClick,
+    };
+  };
+
+  const contextMenuOptions: MenuItemOption[] = [getDeleteMenuItem()];
+
+  const isLoading = useMemo(() => !brandColor || !iconUri || connectionResult.isLoading, [brandColor, iconUri, connectionResult.isLoading]);
+
   return (
     <>
-      <div>
+      <div className="nopan">
         <Handle className="node-handle top" type="target" position={targetPosition} isConnectable={false} />
         <Card
           title={label}
-          icon={iconUriResult.result}
-          draggable={!readOnly}
+          icon={iconUri}
+          draggable={!readOnly && !isTrigger}
           brandColor={brandColor}
           id={id}
           connectionRequired={isConnectionRequired}
@@ -91,11 +143,12 @@ const DefaultNode = ({ data, targetPosition = Position.Top, sourcePosition = Pos
           drag={drag}
           dragPreview={dragPreview}
           isDragging={isDragging}
-          isLoading={iconUriResult.isLoading}
+          isLoading={isLoading}
           isMonitoringView={isMonitoringView}
           readOnly={readOnly}
           onClick={nodeClick}
           selected={selected}
+          contextMenuOptions={contextMenuOptions}
         />
         <Handle className="node-handle bottom" type="source" position={sourcePosition} isConnectable={false} />
       </div>
@@ -104,6 +157,15 @@ const DefaultNode = ({ data, targetPosition = Position.Top, sourcePosition = Pos
           <DropZone graphId={metadata?.graphId ?? ''} parentId={id} />
         </div>
       ) : null}
+      <DeleteNodeModal
+        nodeId={id}
+        // nodeIcon={iconUriResult.result}
+        // brandColor={brandColor}
+        nodeType={WORKFLOW_NODE_TYPES.OPERATION_NODE}
+        isOpen={showDeleteModal}
+        onDismiss={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+      />
     </>
   );
 };

@@ -10,10 +10,22 @@ export interface IRunService {
 }
 
 export interface IApiService {
-  getWorkflows(subscriptionId: string, iseId: string): Promise<any>;
+  getWorkflows(subscriptionId: string, iseId?: string, location?: string): Promise<WorkflowsList[]>;
   getSubscriptions(): Promise<any>;
   getIse(selectedSubscription: string): Promise<any>;
-  validateWorkflows(selectedWorkflows: Array<WorkflowsList>, selectedSubscription: string, selectedLocation: string): Promise<any>;
+  getRegions(subscriptionId: string): Promise<IRegion[]>;
+  validateWorkflows(
+    selectedWorkflows: Array<WorkflowsList>,
+    selectedSubscription: string,
+    selectedLocation: string,
+    selectedAdvanceOptions: AdvancedOptionsTypes[]
+  ): Promise<any>;
+  exportWorkflows(
+    selectedWorkflows: Array<WorkflowsList>,
+    selectedSubscription: string,
+    selectedLocation: string,
+    selectedAdvanceOptions: AdvancedOptionsTypes[]
+  ): Promise<any>;
 }
 
 export interface ArmResources<T> {
@@ -157,17 +169,19 @@ export enum ProjectName {
   review = 'review',
 }
 
-export interface WorkflowProperties {
+export interface Workflow {
   id: string;
   name: string;
-  type: string;
   location: string;
-  tags: Record<string, string>;
-  properties: Record<string, any>;
+  subscriptionId: string;
+  resourceGroup: string;
 }
 
-export interface Workflows {
-  value: Array<WorkflowProperties>;
+export interface GraphApiOptions {
+  selectedSubscription?: string;
+  selectedIse?: string;
+  location?: string;
+  skipToken?: string;
 }
 
 export interface WorkflowsList {
@@ -192,6 +206,7 @@ export enum QueryKeys {
   subscriptionData = 'subscriptionData',
   runsData = 'runsData',
   iseData = 'iseData',
+  regionData = 'regionData',
   validation = 'validation',
   summary = 'summary',
   resourceGroupsData = 'resourceGroupsData',
@@ -212,12 +227,13 @@ export interface ManagedConnections {
 export type ExportData = {
   selectedWorkflows: Array<WorkflowsList>;
   selectedSubscription: string;
-  selectedIse: string;
+  selectedIse?: string;
   location: string;
   validationState: string;
   targetDirectory: ITargetDirectory;
   packageUrl: string;
   managedConnections: ManagedConnections;
+  selectedAdvanceOptions: Array<AdvancedOptionsTypes>;
 };
 
 export enum ResourceType {
@@ -233,6 +249,12 @@ export interface IIse {
   iseName: string;
   location: string;
   resourceGroup: string;
+}
+
+export interface IRegion {
+  name: string;
+  displayName: string;
+  count: number;
 }
 
 export interface IDropDownOption {
@@ -268,6 +290,7 @@ export enum ValidationStatus {
 
 export interface IWorkflowValidation {
   validationState: string;
+  details: any;
   workflowOperations: Record<string, any>;
   connections: Record<string, any>;
   parameters: Record<string, any>;
@@ -299,12 +322,14 @@ export enum WorkflowPart {
   workflowOperations = 'workflowOperations',
   connections = 'connections',
   parameters = 'parameters',
+  workflow = 'details',
 }
 
 export enum StyledWorkflowPart {
   workflowOperations = 'Operations',
   connections = 'Connections',
   parameters = 'Parameters',
+  workflow = 'Workflow',
 }
 
 export interface InjectValuesMessage {
@@ -382,4 +407,10 @@ export interface INamingRules {
 export interface INamingValidation {
   validationError: string;
   validName: boolean;
+}
+
+export enum AdvancedOptionsTypes {
+  off = 'Off',
+  cloneConnections = 'cloneConnections',
+  generateInfrastructureTemplates = 'generateInfrastructureTemplates',
 }

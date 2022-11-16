@@ -3,6 +3,7 @@ import type { Exception } from '@microsoft-logic-apps/utils';
 
 export interface ParameterInfo {
   alternativeKey?: string;
+  conditionalVisibility?: boolean;
   dynamicData?: {
     error?: Exception;
     status: DynamicCallStatus;
@@ -31,12 +32,12 @@ export interface ParameterInfo {
 
 export interface ParameterDetails {
   alias?: string;
-  arrayItemInputParameterKey?: string; // NOTE(johnwa): the associated array item's input parameter key, which could be used as key in reference dynamic parameter
+  arrayItemInputParameterKey?: string; // Note: the associated array item's input parameter key, which could be used as key in reference dynamic parameter
   encode?: string;
   format?: string;
   in?: string;
   isDynamic?: boolean;
-  isEditorManagedItem?: boolean; // NOTE(johnwa): Flag to indicate whether this parameter is managed by a specific editor
+  isEditorManagedItem?: boolean; // Note: Flag to indicate whether this parameter is managed by a specific editor
   isUnknown?: boolean; // Whether the parameter is an unknown parameter (inferred to be 'any' type) sourced from the workflow definition
   parentProperty?: any;
   serialization?: ParameterSerializationOptions;
@@ -46,6 +47,7 @@ export enum DynamicCallStatus {
   STARTED,
   SUCCEEDED,
   FAILED,
+  NOTSTARTED,
 }
 
 export interface ValueSegment {
@@ -82,6 +84,7 @@ export interface Token {
   tokenType: TokenType;
   type?: string;
   value?: string;
+  remappedValue?: string;
 }
 
 export enum TokenType {

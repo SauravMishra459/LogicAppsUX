@@ -156,9 +156,10 @@ export interface ConnectionParameterSets {
 }
 
 export interface ConnectorProperty {
-  capabilities: string[];
+  capabilities?: string[];
   connectionDisplayName?: string;
   displayName: string;
+  description?: string;
   environmentBadge?: Badge;
   environment?: string;
   purpose?: string;
@@ -190,6 +191,8 @@ export interface ConnectorProperty {
     id: string;
   };
   isCustomApi?: boolean;
+  testConnectionUrl?: string;
+  testConnectionOperationName?: string;
 }
 
 export type Connector = ArmResource<ConnectorProperty>;

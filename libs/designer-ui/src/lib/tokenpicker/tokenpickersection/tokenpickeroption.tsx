@@ -1,5 +1,5 @@
 import type { OutputToken } from '..';
-import { ValueSegmentType } from '../../editor';
+import type { ValueSegment } from '../../editor';
 import { INSERT_TOKEN_NODE } from '../../editor/base/plugins/InsertTokenNode';
 import type { ExpressionEditorEvent } from '../../expressioneditor';
 import type { TokenGroup } from '../models/token';
@@ -7,13 +7,14 @@ import { TokenPickerMode } from '../tokenpickerpivot';
 import { Icon } from '@fluentui/react';
 import { useBoolean } from '@fluentui/react-hooks';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { guid } from '@microsoft-logic-apps/utils';
 import Fuse from 'fuse.js';
+import type { LexicalEditor } from 'lexical';
 import type { editor } from 'monaco-editor';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 
+export type GetValueSegmentHandler = (tokenProps: OutputToken, addImplicitForeach: boolean) => Promise<ValueSegment>;
 interface TokenPickerOptionsProps {
   selectedKey: TokenPickerMode;
   section: TokenGroup;
@@ -24,6 +25,8 @@ interface TokenPickerOptionsProps {
   expression: ExpressionEditorEvent;
   setTokenLength: Dispatch<SetStateAction<number[]>>;
   setExpression: Dispatch<SetStateAction<ExpressionEditorEvent>>;
+  getValueSegmentFromToken: GetValueSegmentHandler;
+  tokenClickedCallback?: (token: ValueSegment) => void;
 }
 export const TokenPickerOptions = ({
   selectedKey,
@@ -32,12 +35,19 @@ export const TokenPickerOptions = ({
   index,
   editMode,
   expressionEditorRef,
-  setTokenLength,
   expression,
   setExpression,
+  setTokenLength,
+  getValueSegmentFromToken,
+  tokenClickedCallback,
 }: TokenPickerOptionsProps): JSX.Element => {
   const intl = useIntl();
-  const [editor] = useLexicalComposerContext();
+  let editor: LexicalEditor | null;
+  try {
+    [editor] = useLexicalComposerContext();
+  } catch {
+    editor = null;
+  }
   const [moreOptions, { toggle: toggleMoreOptions }] = useBoolean(true);
   const [filteredTokens, setFilteredTokens] = useState(section.tokens);
 
@@ -122,38 +132,21 @@ export const TokenPickerOptions = ({
     }
   };
 
-  const handleCreateToken = (token: OutputToken) => {
-    const { key, brandColor, icon, title, description, name, type, value, outputInfo } = token;
-    const { actionName, type: tokenType, required, format, source, isSecure, arrayDetails } = outputInfo;
-    editor.dispatchCommand(INSERT_TOKEN_NODE, {
-      brandColor,
-      description,
-      title,
-      icon: icon ?? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-      value,
-      data: {
-        id: guid(),
-        type: ValueSegmentType.TOKEN,
-        value: value ?? '',
-        token: {
-          actionName,
-          tokenType,
-          brandColor,
-          icon,
-          description,
-          key,
-          name,
-          type,
-          value,
-          format,
-          required,
-          title,
-          source,
-          isSecure,
-          arrayDetails: arrayDetails ? { parentArrayName: arrayDetails.parentArray, itemSchema: arrayDetails.itemSchema } : undefined,
-        },
-      },
-    });
+  const handleCreateToken = async (token: OutputToken) => {
+    const { brandColor, icon, title, description, value } = token;
+    const segment = await getValueSegmentFromToken(token, !tokenClickedCallback);
+    if (tokenClickedCallback) {
+      tokenClickedCallback(segment);
+    } else {
+      editor?.dispatchCommand(INSERT_TOKEN_NODE, {
+        brandColor,
+        description,
+        title,
+        icon: icon ?? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+        value,
+        data: segment,
+      });
+    }
   };
 
   return (

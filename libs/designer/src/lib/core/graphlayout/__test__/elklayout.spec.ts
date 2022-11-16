@@ -1,9 +1,10 @@
-import type { WorkflowEdgeType, WorkflowNode } from '../../parsers/models/workflowNode';
-import { WORKFLOW_EDGE_TYPES, WORKFLOW_NODE_TYPES } from '../../parsers/models/workflowNode';
+import type { WorkflowNode } from '../../parsers/models/workflowNode';
 import { createWorkflowNode, createWorkflowEdge, createElkNode, createElkEdge } from '../../utils/graph';
 import { exportForTesting } from '../elklayout';
+import type { WorkflowEdgeType } from '@microsoft-logic-apps/utils';
+import { WORKFLOW_NODE_TYPES, WORKFLOW_EDGE_TYPES } from '@microsoft-logic-apps/utils';
 import type { ElkNode } from 'elkjs/lib/elk-api';
-import type { Edge, Node } from 'react-flow-renderer';
+import type { Edge, Node } from 'reactflow';
 
 const createSharedEdge = (source: string, target: string, type?: WorkflowEdgeType) => ({
   ...createWorkflowEdge(source, target, type),
@@ -79,8 +80,8 @@ describe('elklayout', () => {
               },
             ],
             edges: [
-              createWorkflowEdge('ActionIf-#scope', 'ActionIf-actions-#subgraph'),
-              createWorkflowEdge('ActionIf-#scope', 'ActionIf-elseActions-#subgraph'),
+              createWorkflowEdge('ActionIf-#scope', 'ActionIf-actions'),
+              createWorkflowEdge('ActionIf-#scope', 'ActionIf-elseActions'),
             ],
           },
           createWorkflowNode('Response'),
@@ -127,10 +128,7 @@ describe('elklayout', () => {
                 edges: [createElkEdge('ActionIf-elseActions-#subgraph', 'Increment_variable3')],
               },
             ],
-            edges: [
-              createElkEdge('ActionIf-#scope', 'ActionIf-actions-#subgraph'),
-              createElkEdge('ActionIf-#scope', 'ActionIf-elseActions-#subgraph'),
-            ],
+            edges: [createElkEdge('ActionIf-#scope', 'ActionIf-actions'), createElkEdge('ActionIf-#scope', 'ActionIf-elseActions')],
           },
           createElkNode('Response'),
         ],
@@ -240,8 +238,8 @@ describe('elklayout', () => {
               },
             ],
             edges: [
-              createElkEdge('ActionIf-#scope', 'ActionIf-actions-#subgraph', WORKFLOW_EDGE_TYPES.ONLY_EDGE),
-              createElkEdge('ActionIf-#scope', 'ActionIf-elseActions-#subgraph', WORKFLOW_EDGE_TYPES.ONLY_EDGE),
+              createElkEdge('ActionIf-#scope', 'ActionIf-actions', WORKFLOW_EDGE_TYPES.ONLY_EDGE),
+              createElkEdge('ActionIf-#scope', 'ActionIf-elseActions', WORKFLOW_EDGE_TYPES.ONLY_EDGE),
             ],
           },
           {
@@ -372,8 +370,8 @@ describe('elklayout', () => {
           createSharedEdge('Increment_variable', 'ActionIf'),
           createSharedEdge('ActionIf', 'EmptyScope'),
           createSharedEdge('EmptyScope', 'Response'),
-          createSharedEdge('ActionIf-#scope', 'ActionIf-actions-#subgraph', WORKFLOW_EDGE_TYPES.ONLY_EDGE),
-          createSharedEdge('ActionIf-#scope', 'ActionIf-elseActions-#subgraph', WORKFLOW_EDGE_TYPES.ONLY_EDGE),
+          createSharedEdge('ActionIf-#scope', 'ActionIf-actions', WORKFLOW_EDGE_TYPES.ONLY_EDGE),
+          createSharedEdge('ActionIf-#scope', 'ActionIf-elseActions', WORKFLOW_EDGE_TYPES.ONLY_EDGE),
           createSharedEdge('ActionIf-actions-#subgraph', 'Increment_variable2'),
           createSharedEdge('Increment_variable2', 'Increment_variable4'),
           createSharedEdge('ActionIf-elseActions-#subgraph', 'Increment_variable3'),

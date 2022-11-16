@@ -23,22 +23,31 @@ export enum TokenPickerMode {
 
 interface TokenPickerPivotProps {
   selectedKey: string;
+  hideExpressions: boolean;
   selectKey: () => void;
+  tokenPickerHide?: () => void;
 }
-export const TokenPickerPivot = ({ selectedKey, selectKey }: TokenPickerPivotProps): JSX.Element => {
+export const TokenPickerPivot = ({ selectedKey, hideExpressions, selectKey }: TokenPickerPivotProps): JSX.Element => {
   const intl = useIntl();
+
   const tokenMode = intl.formatMessage({
     defaultMessage: 'Dynamic content',
     description: 'Token picker mode to insert dynamic content',
   });
+
   const expressionMode = intl.formatMessage({
     defaultMessage: 'Expression',
     description: 'Token picker mode to insert expressions',
   });
+
   return (
-    <Pivot styles={pivotStyles} selectedKey={selectedKey} className="msla-panel-menu" onLinkClick={selectKey} linkSize="large">
-      <PivotItem key={TokenPickerMode.TOKEN} itemKey={TokenPickerMode.TOKEN} headerText={tokenMode} />
-      <PivotItem key={TokenPickerMode.TOKEN} itemKey={TokenPickerMode.EXPRESSION} headerText={expressionMode} />
-    </Pivot>
+    <div style={{ display: 'inherit' }}>
+      <Pivot styles={pivotStyles} selectedKey={selectedKey} className="msla-panel-menu" onLinkClick={selectKey} linkSize="large">
+        <PivotItem key={TokenPickerMode.TOKEN} itemKey={TokenPickerMode.TOKEN} headerText={tokenMode} />
+        {hideExpressions ? null : (
+          <PivotItem key={TokenPickerMode.TOKEN} itemKey={TokenPickerMode.EXPRESSION} headerText={expressionMode} />
+        )}
+      </Pivot>
+    </div>
   );
 };

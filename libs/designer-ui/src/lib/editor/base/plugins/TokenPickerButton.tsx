@@ -1,5 +1,6 @@
 import { TokenNode } from '../nodes/tokenNode';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import type { LexicalEditor } from 'lexical';
 import { useEffect } from 'react';
 import { useIntl } from 'react-intl';
 
@@ -11,6 +12,7 @@ export interface ButtonOffSet {
 export interface TokenPickerButtonProps {
   buttonClassName?: string;
   buttonOffset?: ButtonOffSet;
+  customButton?: boolean;
   setShowTokenPicker?: () => void;
 }
 
@@ -24,16 +26,23 @@ export default function TokenPickerButton({
   buttonClassName,
   buttonOffset,
   labelId,
+  customButton,
   setShowTokenPicker,
 }: ButtonProps): JSX.Element {
-  const [editor] = useLexicalComposerContext();
+  let editor: LexicalEditor | null;
+  try {
+    [editor] = useLexicalComposerContext();
+  } catch {
+    editor = null;
+  }
 
-  const intl = useIntl();
   useEffect(() => {
-    if (!editor.hasNodes([TokenNode])) {
+    if (editor && !editor.hasNodes([TokenNode])) {
       throw new Error('TokenPlugin: Register the TokenNode on editor');
     }
   }, [editor]);
+
+  const intl = useIntl();
 
   const addContent = intl.formatMessage({
     defaultMessage: 'Add dynamic content',
@@ -50,7 +59,9 @@ export default function TokenPickerButton({
 
   const handleClick = () => {
     setShowTokenPicker?.();
-    editor.focus();
+    if (editor) {
+      editor.focus();
+    }
   };
 
   return (
@@ -61,9 +72,13 @@ export default function TokenPickerButton({
         handleClick();
       }}
       onMouseDown={(e) => e.preventDefault()}
-      style={{ top: `${buttonOffset?.heightOffset}px`, right: `${buttonOffset?.widthOffset}px` }}
+      style={
+        customButton
+          ? { bottom: '-1px', right: '-5px' }
+          : { top: `${buttonOffset?.heightOffset}px`, right: `${buttonOffset?.widthOffset}px` }
+      }
     >
-      <p className="msla-tokenpicker-button-text">{addContent}</p>
+      {customButton ? null : <p className="msla-tokenpicker-button-text">{addContent}</p>}
       {showTokenPicker ? (
         <img
           src="data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxMyI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiMwMDU4YWQ7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5jbGlja2VkIHN0YXRlX2R5bmFtaWMgY29udGVudDwvdGl0bGU+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMCwxLjV2MTNIMTJWMS41SDBabTksN0g3djJINnYtMkg0di0xSDZ2LTJIN3YySDl2MVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAgLTEuNSkiLz48cmVjdCBjbGFzcz0iY2xzLTEiIHg9IjEzIiB3aWR0aD0iMyIgaGVpZ2h0PSIxMyIvPjwvc3ZnPg=="

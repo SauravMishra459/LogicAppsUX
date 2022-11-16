@@ -1,2 +1,6 @@
-export { default as simpleMockSchema } from './schemas/SimpleMockSchema.json';
-export { default as noChildrenMockSchema } from './schemas/NoChildrenMockSchema.json';
+export { default as sourceMockSchema } from './SourceMockSchema.json';
+export { default as targetMockSchema } from './TargetMockSchema.json';
+export { default as layeredLoopSourceMockSchema } from './LayeredLoopSourceMockSchema.json';
+export { default as layeredLoopTargetMockSchema } from './LayeredLoopTargetMockSchema.json';
+export { default as simpleLoopSource } from './SimpleLoopSource.json';
+export { default as simpleLoopTarget } from './SimpleLoopTarget.json';

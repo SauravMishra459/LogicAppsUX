@@ -1,6 +1,6 @@
 import { ResourceType } from '../types';
-import type { IApiService, Workflows, WorkflowsList, ISummaryData } from '../types';
-import { getValidationPayload, getExportUri, getWorkflowsUri } from './helper';
+import type { IApiService, WorkflowsList, ISummaryData, IRegion, GraphApiOptions, AdvancedOptionsTypes } from '../types';
+import { getValidationPayload, getExportUri } from './helper';
 
 export interface ApiServiceOptions {
   baseUrl?: string;
@@ -29,7 +29,7 @@ export class ApiService implements IApiService {
     });
   };
 
-  private getPayload = (resourceType: string, properties?: any) => {
+  private getPayload = (resourceType: string, properties?: GraphApiOptions) => {
     switch (resourceType) {
       case ResourceType.subscriptions: {
         return {
@@ -38,7 +38,7 @@ export class ApiService implements IApiService {
         };
       }
       case ResourceType.ise: {
-        const selectedSubscription = properties.selectedSubscription;
+        const selectedSubscription = properties?.selectedSubscription;
         return {
           query:
             "resources|where type =~ 'Microsoft.Logic/integrationServiceEnvironments'\r\n | extend iseName=name | project id, iseName, location, subscriptionId, resourceGroup\r\n|sort by (tolower(tostring(iseName))) asc",
@@ -46,11 +46,31 @@ export class ApiService implements IApiService {
         };
       }
       case ResourceType.resourcegroups: {
-        const selectedSubscription = properties.selectedSubscription;
+        const selectedSubscription = properties?.selectedSubscription;
         return {
           query:
             "(resourcecontainers|where type in~ ('microsoft.resources/subscriptions/resourcegroups'))|where type =~ 'microsoft.resources/subscriptions/resourcegroups'\r\n| project id,name,location,subscriptionId,resourceGroup\r\n|project name,id,location,subscriptionId,resourceGroup|sort by (tolower(tostring(name))) asc",
           subscriptions: [selectedSubscription],
+        };
+      }
+      case ResourceType.workflows: {
+        const subscriptionId = properties?.selectedSubscription;
+        const selectedIse = properties?.selectedIse;
+        const skipToken = properties?.skipToken ?? '';
+        const location = properties?.location;
+
+        return {
+          query:
+            `resources | where type =~ 'Microsoft.Logic/workflows' and isnotnull(properties) and ` +
+            (selectedIse
+              ? `properties.integrationServiceEnvironment.id =~ '${selectedIse}'`
+              : `isnull(properties.integrationServiceEnvironment) and location =~ '${location}'`) +
+            ' | project id, name, resourceGroup | sort by (tolower(tostring(name))) asc',
+          subscriptions: [subscriptionId],
+          options: {
+            $top: 1000,
+            $skipToken: skipToken,
+          },
         };
       }
       default: {
@@ -59,19 +79,52 @@ export class ApiService implements IApiService {
     }
   };
 
-  async getWorkflows(subscriptionId: string, iseId: string): Promise<any> {
+  async getWorkflows(subscriptionId: string, iseId?: string, location?: string): Promise<WorkflowsList[]> {
     const headers = this.getAccessTokenHeaders();
-    const workflowsUri = getWorkflowsUri(subscriptionId, iseId);
-    const response = await fetch(workflowsUri, { headers, method: 'GET' });
+    const workflows: WorkflowsList[] = [];
+    let skipToken = '';
+    let hasMoreData = true;
 
-    if (!response.ok) {
-      throw new Error(`${response.status} ${response.statusText}`);
+    while (hasMoreData) {
+      const payload = this.getPayload(ResourceType.workflows, {
+        selectedSubscription: subscriptionId,
+        selectedIse: iseId,
+        location,
+        skipToken,
+      });
+      const response = await fetch(graphApiUri, { headers, method: 'POST', body: JSON.stringify(payload) });
+
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+
+      const responseBody = await response.json();
+      workflows.push(
+        ...responseBody.data.map((workflow: any) => {
+          const { name, id } = workflow;
+
+          return {
+            key: id,
+            name,
+            resourceGroup: this.getResourceGroup(id),
+          };
+        })
+      );
+
+      if (responseBody['$skipToken']) {
+        skipToken = responseBody['$skipToken'];
+      } else {
+        hasMoreData = false;
+      }
     }
 
-    const workflowsResponse: Workflows = await response.json();
-    const { value: workflows } = workflowsResponse;
+    return workflows;
+  }
 
-    return { workflows };
+  getResourceGroup(workflowID: string): string {
+    const separators = workflowID.split('/');
+    const resourceGroupLocation = 4;
+    return separators[resourceGroupLocation];
   }
 
   async getSubscriptions(): Promise<any> {
@@ -104,24 +157,97 @@ export class ApiService implements IApiService {
     return { ise };
   }
 
-  async validateWorkflows(selectedWorkflows: Array<WorkflowsList>, selectedSubscription: string, selectedLocation: string) {
+  async getAllRegionWithDisplayName(subscriptionId: string): Promise<any[]> {
     const headers = this.getAccessTokenHeaders();
-    const validationUri = getExportUri(selectedSubscription, selectedLocation, true);
-    const validationPayload = getValidationPayload(selectedWorkflows);
-    const response = await fetch(validationUri, { headers, method: 'POST', body: JSON.stringify(validationPayload) });
+    const url = `https://management.azure.com/subscriptions/${subscriptionId}/locations?api-version=2022-05-01`;
+    const response = await fetch(url, { headers, method: 'GET' });
 
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
+    }
+
+    return (await response.json()).value;
+  }
+
+  async getUsedRegion(subscriptionId: string): Promise<any[]> {
+    const headers = this.getAccessTokenHeaders();
+    const payload = {
+      query: `resources | where type =~ 'Microsoft.Logic/workflows' and isnotnull(properties) and isnull(properties.integrationServiceEnvironment) | summarize count() by location`,
+      subscriptions: [subscriptionId],
+      options: {
+        $top: 1000,
+      },
+    };
+    const response = await fetch(graphApiUri, { headers, method: 'POST', body: JSON.stringify(payload) });
+
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+
+    return (await response.json()).data;
+  }
+
+  async getRegions(subscriptionId: string): Promise<IRegion[]> {
+    const allRegionTask = this.getAllRegionWithDisplayName(subscriptionId);
+    const usedRegions = await this.getUsedRegion(subscriptionId);
+    const allRegions = await allRegionTask;
+
+    return usedRegions.map((region) => {
+      return {
+        name: region.location,
+        displayName: this.findRegionDisplayName(allRegions, region.location),
+        count: region.count_,
+      };
+    });
+  }
+
+  findRegionDisplayName(regions: any, region: string): string {
+    for (const item of regions) {
+      if (item.name === region) {
+        return item.displayName;
+      }
+    }
+
+    return region;
+  }
+
+  async validateWorkflows(
+    selectedWorkflows: Array<WorkflowsList>,
+    selectedSubscription: string,
+    selectedLocation: string,
+    selectedAdvanceOptions: AdvancedOptionsTypes[]
+  ) {
+    const headers = this.getAccessTokenHeaders();
+    const validationUri = getExportUri(selectedSubscription, selectedLocation, true);
+    const workflowExportOptions = selectedAdvanceOptions.join(',');
+    const validationPayload = getValidationPayload(selectedWorkflows, workflowExportOptions);
+    const response = await fetch(validationUri, { headers, method: 'POST', body: JSON.stringify(validationPayload) });
+
+    if (!response.ok) {
+      let errorBody: any;
+      try {
+        errorBody = await response.json();
+      } catch (_ex) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+
+      throw new Error(errorBody.error.message);
     }
 
     const validationResponse: any = await response.json();
     return validationResponse;
   }
 
-  async exportWorkflows(selectedWorkflows: Array<WorkflowsList>, selectedSubscription: string, selectedLocation: string) {
+  async exportWorkflows(
+    selectedWorkflows: Array<WorkflowsList>,
+    selectedSubscription: string,
+    selectedLocation: string,
+    selectedAdvanceOptions: AdvancedOptionsTypes[]
+  ) {
     const headers = this.getAccessTokenHeaders();
     const exportUri = getExportUri(selectedSubscription, selectedLocation, false);
-    const exportPayload = getValidationPayload(selectedWorkflows);
+    const workflowExportOptions = selectedAdvanceOptions.join(',');
+    const exportPayload = getValidationPayload(selectedWorkflows, workflowExportOptions);
     const response = await fetch(exportUri, { headers, method: 'POST', body: JSON.stringify(exportPayload) });
 
     if (!response.ok) {

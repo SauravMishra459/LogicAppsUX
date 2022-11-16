@@ -42,6 +42,7 @@ export interface PanelHeaderProps {
   onDismissButtonClicked?(): void;
   onRenderWarningMessage?(): JSX.Element;
   toggleCollapse: () => void;
+  onTitleChange: (newValue: string) => void;
 }
 export enum PanelHeaderControlType {
   DISMISS_BUTTON,
@@ -101,6 +102,7 @@ export const PanelHeader = ({
   onDismissButtonClicked,
   onRenderWarningMessage,
   toggleCollapse,
+  onTitleChange,
 }: PanelHeaderProps): JSX.Element => {
   const intl = useIntl();
 
@@ -120,10 +122,13 @@ export const PanelHeader = ({
   const noNodeOnCardLevel = noNodeSelected && panelScope === PanelScope.CardLevel;
 
   const iconComponent = isLoading ? (
-    <Spinner size={SpinnerSize.small} />
+    <div className="msla-panel-card-icon">
+      <Spinner size={SpinnerSize.medium} style={{ padding: '6px' }} />
+    </div>
   ) : cardIcon ? (
     <img className="msla-panel-card-icon" src={cardIcon} hidden={isCollapsed} alt="panel card icon" />
-  ) : null;
+  ) : // Occurs both during loading new nodes and on Switch Case Nodes
+  null;
 
   const getPanelHeaderMenu = (): JSX.Element => {
     const panelHeaderMenuItems = panelHeaderMenu.map((item) => ({
@@ -208,7 +213,8 @@ export const PanelHeader = ({
                   titleId={titleId}
                   readOnlyMode={readOnlyMode}
                   renameTitleDisabled={renameTitleDisabled}
-                  savedTitle={title}
+                  titleValue={title}
+                  onChange={onTitleChange}
                 />
               </div>
             ) : null}

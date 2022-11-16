@@ -1,12 +1,13 @@
 import WarningIcon from '../../../resources/Caution.svg';
+import { QueryKeys } from '../../../run-service';
+import type { WorkflowsList, SelectedWorkflowsList } from '../../../run-service';
 import { ApiService } from '../../../run-service/export/index';
-import { QueryKeys } from '../../../run-service/types';
-import type { WorkflowsList, SelectedWorkflowsList } from '../../../run-service/types';
 import type { AppDispatch, RootState } from '../../../state/store';
 import { updateSelectedWorkFlows } from '../../../state/vscodeSlice';
 import type { InitializedVscodeState } from '../../../state/vscodeSlice';
+import { AdvancedOptions } from './advancedOptions';
 import { Filters } from './filters';
-import { filterWorkflows, getListColumns, getSelectedItems, parseResourceGroups, parseWorkflowData, updateSelectedItems } from './helper';
+import { filterWorkflows, getListColumns, getSelectedItems, parseResourceGroups, updateSelectedItems } from './helper';
 import { SelectedList } from './selectedList';
 import { Separator, ShimmeredDetailsList, Text, SelectionMode, Selection, MessageBar, MessageBarType } from '@fluentui/react';
 import type { IDropdownOption } from '@fluentui/react';
@@ -18,7 +19,7 @@ import { useDispatch, useSelector } from 'react-redux';
 export const WorkflowsSelection: React.FC = () => {
   const vscodeState = useSelector((state: RootState) => state.vscode);
   const { baseUrl, accessToken, exportData } = vscodeState as InitializedVscodeState;
-  const { selectedSubscription, selectedIse, selectedWorkflows } = exportData;
+  const { selectedSubscription, selectedIse, selectedWorkflows, location } = exportData;
 
   const [renderWorkflows, setRenderWorkflows] = useState<Array<WorkflowsList> | null>(null);
   const [resourceGroups, setResourceGroups] = useState<IDropdownOption[]>([]);
@@ -76,22 +77,21 @@ export const WorkflowsSelection: React.FC = () => {
   }, [accessToken, baseUrl]);
 
   const loadWorkflows = () => {
-    return apiService.getWorkflows(selectedSubscription, selectedIse);
+    return apiService.getWorkflows(selectedSubscription, selectedIse, location);
   };
 
-  const onWorkflowsSuccess = (workflowsData: any) => {
-    const workflowItems: Array<WorkflowsList> = !workflowsData ? [] : parseWorkflowData(workflowsData);
-    const resourceGroups: IDropdownOption[] = !workflowsData ? [] : parseResourceGroups(workflowItems);
+  const onWorkflowsSuccess = (workflows: WorkflowsList[]) => {
+    const resourceGroups: IDropdownOption[] = !workflows ? [] : parseResourceGroups(workflows);
 
-    setRenderWorkflows(workflowItems);
+    setRenderWorkflows(workflows);
     setResourceGroups(resourceGroups);
-    allWorkflows.current = workflowItems;
-    allItemsSelected.current = workflowItems.map((workflow) => {
+    allWorkflows.current = workflows;
+    allItemsSelected.current = workflows.map((workflow) => {
       return { ...workflow, selected: false, rendered: true };
     });
   };
 
-  const { isLoading: isWorkflowsLoading } = useQuery<any>([QueryKeys.workflowsData, { iseId: selectedIse }], loadWorkflows, {
+  const { isLoading: isWorkflowsLoading } = useQuery<any>([QueryKeys.workflowsData, { location, iseId: selectedIse }], loadWorkflows, {
     refetchOnWindowFocus: false,
     onSuccess: onWorkflowsSuccess,
   });
@@ -245,7 +245,7 @@ export const WorkflowsSelection: React.FC = () => {
     });
   };
 
-  const updateRenderWorflows = () => {
+  const updateRenderWorkflows = () => {
     return new Promise<void>((resolve) => {
       const updatedRenderWorkflows = renderWorkflows?.map((workflow, index) => {
         return { ...workflow, key: index.toString() };
@@ -260,30 +260,33 @@ export const WorkflowsSelection: React.FC = () => {
     const copyRenderWorkflows = [...(renderWorkflows ?? [])];
     await deselectItemKey(itemKey);
     selection.setItems(renderWorkflows as WorkflowsList[]);
-    await updateRenderWorflows();
+    await updateRenderWorkflows();
     setRenderWorkflows(copyRenderWorkflows);
   };
 
   return (
-    <div className="msla-export-workflows-panel">
-      <div className="msla-export-workflows-panel-list">
-        <Text variant="xLarge" block>
-          {intlText.SELECT_TITLE}
-        </Text>
-        <Text variant="large" block>
-          {intlText.SELECT_DESCRIPTION}
-        </Text>
-        {limitInfo}
-        {filters}
-        {workflowsList}
+    <div className="msla-export-workflows">
+      <div className="msla-export-workflows-panel">
+        <div className="msla-export-workflows-panel-list">
+          <Text variant="xLarge" block>
+            {intlText.SELECT_TITLE}
+          </Text>
+          <Text variant="large" block>
+            {intlText.SELECT_DESCRIPTION}
+          </Text>
+          {limitInfo}
+          {filters}
+          {workflowsList}
+        </div>
+        <Separator vertical className="msla-export-workflows-panel-divider" />
+        <SelectedList
+          isLoading={isWorkflowsLoading || renderWorkflows === null}
+          allWorkflows={allWorkflows.current}
+          renderWorkflows={renderWorkflows}
+          deselectWorkflow={deselectWorkflow}
+        />
       </div>
-      <Separator vertical className="msla-export-workflows-panel-divider" />
-      <SelectedList
-        isLoading={isWorkflowsLoading || renderWorkflows === null}
-        allWorkflows={allWorkflows.current}
-        renderWorkflows={renderWorkflows}
-        deselectWorkflow={deselectWorkflow}
-      />
+      <AdvancedOptions />
     </div>
   );
 };

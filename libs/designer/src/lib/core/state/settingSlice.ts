@@ -5,27 +5,28 @@ export enum ValidationErrorKeys {
   CHUNK_SIZE_INVALID = 'ChunkSizeInvalid',
   PAGING_COUNT = 'PagingCount',
   RETRY_COUNT_INVALID = 'RetryCountInvalid',
-  RETRY_INTERVAL_EMPTY = 'RetryIntervalEmpty',
+  RETRY_INTERVAL_INVALID = 'RetryIntervalInvalid',
   SINGLE_INSTANCE_SPLITON = 'SingleInstanceSplitOn',
   TRIGGER_CONDITION_EMPTY = 'TriggerConditionEmpty',
   TIMEOUT_VALUE_INVALID = 'TimeoutValueInvalid',
-  RETRY_INTERVAL_INVALID = 'RetryIntervalInvalid',
+}
+
+export enum ValidationWarningKeys {
+  CANNOT_DELETE_LAST_ACTION = 'CannotDeleteLastAction',
+  CANNOT_DELETE_LAST_STATUS = 'CannotDeleteLastStatus',
 }
 
 export interface ValidationError {
-  key?: ValidationErrorKeys;
+  key: ValidationErrorKeys | ValidationWarningKeys;
   message: string;
-  shouldRenderBelowConfigurationsSections?: boolean;
 }
 
 export interface SettingsState {
-  // settings: Settings;
   validationErrors: Record<string, ValidationError[]>;
   expandedSections: string[];
 }
 
 const initialState: SettingsState = {
-  // settings: {},
   validationErrors: {},
   expandedSections: [],
 };
@@ -34,15 +35,11 @@ export const settingsSlice = createSlice({
   name: 'operationSettings',
   initialState,
   reducers: {
-    setValidationError: (state: SettingsState, action: PayloadAction<Record<string, ValidationError[]>>) => {
-      if (!action || !action.payload) return;
-      const { payload } = action;
-      const nodeId = Object.keys(action.payload)[0];
-
-      state.validationErrors = {
-        ...state.validationErrors,
-        [nodeId]: state.validationErrors[nodeId] ? [...state.validationErrors[nodeId], ...payload[nodeId]] : payload[nodeId],
-      };
+    setValidationError: (state: SettingsState, action: PayloadAction<{ nodeId: string; errors: ValidationError[] }>) => {
+      if (!action?.payload) return;
+      const { nodeId, errors } = action.payload;
+      if (errors.length === 0) delete state.validationErrors[nodeId];
+      else state.validationErrors[nodeId] = errors;
     },
     setExpandedSections: (state: SettingsState, action: PayloadAction<string>) => {
       if (!action || !action.payload) return;

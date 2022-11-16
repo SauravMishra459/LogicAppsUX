@@ -5,23 +5,23 @@ import { AutoFocus } from './plugins/AutoFocus';
 import AutoLink from './plugins/AutoLink';
 import ClearEditor from './plugins/ClearEditor';
 import DeleteTokenNode from './plugins/DeleteTokenNode';
+import IgnoreTab from './plugins/IgnoreTab';
 import InsertTokenNode from './plugins/InsertTokenNode';
 import OnBlur from './plugins/OnBlur';
 import OnFocus from './plugins/OnFocus';
+import { ReadOnly } from './plugins/ReadOnly';
 import type { TokenPickerButtonProps } from './plugins/TokenPickerButton';
 import TokenPickerButton from './plugins/TokenPickerButton';
 import { TreeView } from './plugins/TreeView';
-import { Validation } from './plugins/Validation';
-import type { ValidationProps } from './plugins/Validation';
 import EditorTheme from './themes/editorTheme';
 import { parseSegments } from './utils/parsesegments';
+import { css } from '@fluentui/react';
 import { useId } from '@fluentui/react-hooks';
 import { AutoLinkNode, LinkNode } from '@lexical/link';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin as History } from '@lexical/react/LexicalHistoryPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
 import { useFunctionalState } from '@react-hookz/web';
 import { useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -33,7 +33,27 @@ export interface ChangeState {
   viewModel?: any; // TODO - Should be strongly typed once updated for Array
 }
 
+export type GetTokenPickerHandler = (
+  editorId: string,
+  labelId: string,
+  onClick?: (b: boolean) => void,
+  tokenClicked?: (token: ValueSegment) => void,
+  hideTokenPicker?: () => void
+) => JSX.Element;
+
+export interface tokenPickerVisibilityHandler {
+  tokenPickerVisibility?: boolean;
+  showTokenPickerSwitch?: (show?: boolean) => void;
+}
+
+export interface TokenPickerHandler {
+  getTokenPicker: GetTokenPickerHandler;
+  tokenPickerProps: tokenPickerVisibilityHandler;
+  tokenPickerButtonProps?: TokenPickerButtonProps;
+}
+
 export type ChangeHandler = (newState: ChangeState) => void;
+export type CallbackHandler = () => void;
 
 export interface DictionaryCallbackProps {
   addItem: (index: number) => void;
@@ -46,11 +66,11 @@ export interface BaseEditorProps {
   BasePlugins?: BasePlugins;
   initialValue: ValueSegment[];
   children?: React.ReactNode;
-  tokenPickerButtonProps?: TokenPickerButtonProps;
-  GetTokenPicker: (editorId: string, labelId: string, onClick?: (b: boolean) => void) => JSX.Element;
+  isTrigger?: boolean;
   onChange?: ChangeHandler;
   onBlur?: () => void;
   onFocus?: () => void;
+  tokenPickerHandler: TokenPickerHandler;
 }
 
 export interface BasePlugins {
@@ -61,7 +81,7 @@ export interface BasePlugins {
   tokens?: boolean;
   treeView?: boolean;
   toolBar?: boolean;
-  validation?: ValidationProps;
+  tabbable?: boolean;
 }
 
 const onError = (error: Error) => {
@@ -75,22 +95,25 @@ export const BaseEditor = ({
   BasePlugins = {},
   initialValue,
   children,
-  tokenPickerButtonProps,
-  GetTokenPicker,
-  onBlur,
+  isTrigger,
   onFocus,
+  onBlur,
+  tokenPickerHandler,
 }: BaseEditorProps) => {
   const intl = useIntl();
   const editorId = useId('msla-tokenpicker-callout-location');
   const labelId = useId('msla-tokenpicker-callout-label');
   const [showTokenPickerButton, setShowTokenPickerButton] = useState(false);
-  const [showTokenPicker, setShowTokenPicker] = useState(true);
   const [getInTokenPicker, setInTokenPicker] = useFunctionalState(false);
+  const { getTokenPicker, tokenPickerProps, tokenPickerButtonProps } = tokenPickerHandler || {};
+  const { customButton = false } = tokenPickerButtonProps || {};
+  const { tokenPickerVisibility, showTokenPickerSwitch } = tokenPickerProps || {};
+
   const initialConfig = {
     theme: EditorTheme,
+    editable: !readonly,
     onError,
-    readOnly: readonly,
-    nodes: [TableCellNode, TableNode, TableRowNode, AutoLinkNode, LinkNode, TokenNode],
+    nodes: [AutoLinkNode, LinkNode, TokenNode],
     namespace: 'editor',
     editorState:
       initialValue &&
@@ -99,7 +122,7 @@ export const BaseEditor = ({
       }),
   };
 
-  const { autoFocus, autoLink, clearEditor, history = true, tokens, treeView, validation, toolBar } = BasePlugins;
+  const { autoFocus, autoLink, clearEditor, history = true, tokens, treeView, toolBar, tabbable } = BasePlugins;
 
   const editorInputLabel = intl.formatMessage({
     defaultMessage: 'Editor Input',
@@ -113,19 +136,22 @@ export const BaseEditor = ({
     setInTokenPicker(false);
     onFocus?.();
   };
+
   const handleBlur = () => {
-    if (tokens && !getInTokenPicker()) {
-      setInTokenPicker(false);
+    if (!getInTokenPicker()) {
+      if (tokens) {
+        setInTokenPicker(false);
+      }
+      onBlur?.();
     }
     setShowTokenPickerButton(false);
-    onBlur?.();
   };
 
   const handleShowTokenPicker = () => {
-    if (showTokenPicker) {
+    if (tokenPickerVisibility) {
       setInTokenPicker(false);
     }
-    setShowTokenPicker(!showTokenPicker);
+    showTokenPickerSwitch?.();
   };
 
   const onClickTokenPicker = (b: boolean) => {
@@ -137,7 +163,7 @@ export const BaseEditor = ({
       <div className={className ?? 'msla-editor-container'} id={editorId}>
         {toolBar ? <Toolbar /> : null}
         <RichTextPlugin
-          contentEditable={<ContentEditable className="editor-input" ariaLabel={editorInputLabel} />}
+          contentEditable={<ContentEditable className={css('editor-input', readonly && 'readonly')} ariaLabel={editorInputLabel} />}
           placeholder={<span className="editor-placeholder"> {placeholder} </span>}
         />
         {treeView ? <TreeView /> : null}
@@ -145,29 +171,24 @@ export const BaseEditor = ({
         {history ? <History /> : null}
         {autoLink ? <AutoLink /> : null}
         {clearEditor ? <ClearEditor showButton={false} /> : null}
-        {validation ? (
-          <Validation
-            type={validation.type}
-            errorMessage={validation.errorMessage}
-            tokensEnabled={tokens}
-            className={validation.className}
-            isValid={validation.isValid}
-            setIsValid={validation.setIsValid}
-          />
-        ) : null}
 
-        {(tokens && showTokenPickerButton) || getInTokenPicker() ? (
+        {!isTrigger && ((tokens && showTokenPickerButton) || getInTokenPicker()) ? (
           <TokenPickerButton
+            customButton={customButton}
             labelId={labelId}
-            showTokenPicker={showTokenPicker}
+            showTokenPicker={!!tokenPickerVisibility}
             buttonClassName={tokenPickerButtonProps?.buttonClassName}
             buttonOffset={tokenPickerButtonProps?.buttonOffset}
             setShowTokenPicker={handleShowTokenPicker}
           />
         ) : null}
-        {(showTokenPickerButton && showTokenPicker) || getInTokenPicker() ? GetTokenPicker(editorId, labelId, onClickTokenPicker) : null}
+        {!isTrigger && ((showTokenPickerButton && tokenPickerVisibility) || getInTokenPicker())
+          ? getTokenPicker(editorId, labelId, onClickTokenPicker, undefined, customButton ? handleShowTokenPicker : undefined)
+          : null}
         <OnBlur command={handleBlur} />
         <OnFocus command={handleFocus} />
+        <ReadOnly readonly={readonly} />
+        {tabbable ? null : <IgnoreTab />}
         {tokens ? <InsertTokenNode /> : null}
         {tokens ? <DeleteTokenNode /> : null}
         {children}

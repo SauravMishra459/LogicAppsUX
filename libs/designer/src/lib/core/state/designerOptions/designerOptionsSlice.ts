@@ -4,8 +4,12 @@ import {
   InitLoggerService,
   DevLogger,
   InitConnectionService,
+  InitConnectorService,
+  InitGatewayService,
   InitOperationManifestService,
   InitSearchService,
+  InitOAuthService,
+  InitWorkflowService,
 } from '@microsoft-logic-apps/designer-client-services';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
@@ -13,12 +17,22 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 const initialState: DesignerOptionsState = {
   readOnly: false,
   isMonitoringView: false,
+  isDarkMode: false,
   servicesInitialized: false,
 };
 
 export const initializeServices = createAsyncThunk(
   'initializeDesignerServices',
-  async ({ connectionService, operationManifestService, searchService, loggerService }: ServiceOptions) => {
+  async ({
+    connectionService,
+    operationManifestService,
+    searchService,
+    connectorService,
+    oAuthService,
+    gatewayService,
+    loggerService,
+    workflowService,
+  }: ServiceOptions) => {
     const loggerServices: ILoggerService[] = [];
     if (loggerService) {
       loggerServices.push(loggerService);
@@ -26,10 +40,21 @@ export const initializeServices = createAsyncThunk(
     if (process.env.NODE_ENV !== 'production') {
       loggerServices.push(new DevLogger());
     }
+    InitLoggerService(loggerServices);
     InitConnectionService(connectionService);
     InitOperationManifestService(operationManifestService);
     InitSearchService(searchService);
-    InitLoggerService(loggerServices);
+    InitOAuthService(oAuthService);
+    InitWorkflowService(workflowService);
+
+    if (connectorService) {
+      InitConnectorService(connectorService);
+    }
+
+    if (gatewayService) {
+      InitGatewayService(gatewayService);
+    }
+
     return true;
   }
 );
@@ -41,6 +66,7 @@ export const designerOptionsSlice = createSlice({
     initDesignerOptions: (state: DesignerOptionsState, action: PayloadAction<Omit<DesignerOptionsState, 'servicesInitialized'>>) => {
       state.readOnly = action.payload.readOnly;
       state.isMonitoringView = action.payload.isMonitoringView;
+      state.isDarkMode = action.payload.isDarkMode;
     },
   },
   extraReducers: (builder) => {

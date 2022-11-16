@@ -13,9 +13,7 @@ exports[`ui/panel/panelheadertitle should construct. 1`] = `
   maxLength={80}
   onBlur={[Function]}
   onChange={[Function]}
-  onFocus={[Function]}
   onKeyDown={[Function]}
-  onKeyUp={[Function]}
   styles={
     Object {
       "fieldGroup": Object {

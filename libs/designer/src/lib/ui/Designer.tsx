@@ -1,26 +1,30 @@
 import { useLayout } from '../core/graphlayout';
-import type { WorkflowNodeType } from '../core/parsers/models/workflowNode';
 import { useAllOperations, useAllConnectors } from '../core/queries/browse';
-import { buildEdgeIdsBySource, updateNodeSizes } from '../core/state/workflow/workflowSlice';
-import type { RootState } from '../core/store';
+import { useIsPanelCollapsed } from '../core/state/panel/panelSelectors';
+import { useIsGraphEmpty } from '../core/state/workflow/workflowSelectors';
+import { buildEdgeIdsBySource, clearFocusNode, updateNodeSizes } from '../core/state/workflow/workflowSlice';
+import type { AppDispatch, RootState } from '../core/store';
+import { DEFAULT_NODE_SIZE } from '../core/utils/graph';
 import Controls from './Controls';
 import GraphNode from './CustomNodes/GraphContainerNode';
 import HiddenNode from './CustomNodes/HiddenNode';
 import OperationNode from './CustomNodes/OperationCardNode';
+import PlaceholderNode from './CustomNodes/PlaceholderNode';
 import ScopeCardNode from './CustomNodes/ScopeCardNode';
 import SubgraphCardNode from './CustomNodes/SubgraphCardNode';
 import Minimap from './Minimap';
 import { ButtonEdge } from './connections/edge';
-// import { OnlyEdge } from './connections/onlyEdge';
 import { HiddenEdge } from './connections/hiddenEdge';
 import { PanelRoot } from './panel/panelroot';
-import { useThrottledEffect } from '@microsoft-logic-apps/utils';
-import { useCallback } from 'react';
+import { setLayerHostSelector } from '@fluentui/react';
+import type { WorkflowNodeType } from '@microsoft-logic-apps/utils';
+import { WORKFLOW_NODE_TYPES, useThrottledEffect } from '@microsoft-logic-apps/utils';
+import { useCallback, useEffect, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import ReactFlow, { ReactFlowProvider } from 'react-flow-renderer';
-import type { NodeChange } from 'react-flow-renderer';
 import { useDispatch, useSelector } from 'react-redux';
+import { ReactFlow, ReactFlowProvider, useNodes, useReactFlow, useStore, BezierEdge } from 'reactflow';
+import type { NodeChange } from 'reactflow';
 
 export interface DesignerProps {
   graphId?: string;
@@ -36,18 +40,76 @@ const nodeTypes: NodeTypesObj = {
   SCOPE_CARD_NODE: ScopeCardNode,
   SUBGRAPH_CARD_NODE: SubgraphCardNode,
   HIDDEN_NODE: HiddenNode,
+  PLACEHOLDER_NODE: PlaceholderNode,
 };
 
 const edgeTypes = {
   BUTTON_EDGE: ButtonEdge,
   HEADING_EDGE: ButtonEdge, // This is functionally the same as a button edge
-  // ONLY_EDGE: undefined,
+  ONLY_EDGE: BezierEdge, // Setting it as default React Flow Edge, can be changed as needed
   HIDDEN_EDGE: HiddenEdge,
+};
+export const CanvasFinder = () => {
+  const focusNode = useSelector((state: RootState) => state.workflow.focusedCanvasNodeId);
+  const isEmpty = useIsGraphEmpty();
+  const { setCenter, getZoom } = useReactFlow();
+  const height = useStore((state) => state.height);
+
+  const isPanelCollapsed = useIsPanelCollapsed();
+  const [firstLoad, setFirstLoad] = useState(true);
+
+  // If first load is an empty workflow, set canvas to center
+  useEffect(() => {
+    if (isEmpty && firstLoad) {
+      setCenter(DEFAULT_NODE_SIZE.width / 2, DEFAULT_NODE_SIZE.height, { zoom: 1 });
+      setFirstLoad(false);
+    }
+  }, [setCenter, height, isEmpty, firstLoad]);
+
+  const nodeData = useNodes().find((x) => x.id === focusNode);
+  const dispatch = useDispatch<AppDispatch>();
+  const handleTransform = useCallback(() => {
+    if (!focusNode) return;
+    if ((!nodeData?.position?.x && !nodeData?.position?.y) || !nodeData?.width || !nodeData?.height) {
+      return;
+    }
+
+    let xRawPos = nodeData?.positionAbsolute?.x ?? 0;
+    const yRawPos = nodeData?.positionAbsolute?.y ?? 0;
+
+    // If the panel is open, reduce X space
+    if (!isPanelCollapsed) xRawPos += 630 / 2;
+
+    const xTarget = xRawPos + (nodeData?.width ?? DEFAULT_NODE_SIZE.width) / 2; // Center X on node midpoint
+    const yTarget = yRawPos + (nodeData?.height ?? DEFAULT_NODE_SIZE.height); // Center Y on bottom edge
+
+    if (firstLoad) {
+      const firstNodeYPos = 150;
+      setCenter(xTarget, height / 2 - firstNodeYPos, { zoom: 1 });
+      setFirstLoad(false);
+    } else {
+      setCenter(xTarget, yTarget, {
+        zoom: getZoom(),
+        duration: 500,
+      });
+    }
+    dispatch(clearFocusNode());
+  }, [dispatch, firstLoad, focusNode, getZoom, nodeData, setCenter, height, isPanelCollapsed]);
+
+  useEffect(() => {
+    handleTransform();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodeData, focusNode]);
+  return null;
 };
 
 export const Designer = () => {
   const [nodes, edges] = useLayout();
+  const isEmpty = useIsGraphEmpty();
   const dispatch = useDispatch();
+
+  useAllOperations();
+  useAllConnectors();
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -56,22 +118,31 @@ export const Designer = () => {
     [dispatch]
   );
 
+  const emptyWorkflowPlaceholderNodes = [
+    {
+      id: 'newWorkflowTrigger',
+      position: { x: 0, y: 0 },
+      data: { label: 'newWorkflowTrigger' },
+      parentNode: undefined,
+      type: WORKFLOW_NODE_TYPES.PLACEHOLDER_NODE,
+    },
+  ];
+
+  const nodesWithPlaceholder = !isEmpty ? nodes : emptyWorkflowPlaceholderNodes;
+
   const graph = useSelector((state: RootState) => state.workflow.graph);
   useThrottledEffect(() => dispatch(buildEdgeIdsBySource()), [graph], 200);
 
-  useAllOperations();
-  useAllConnectors();
-
+  useEffect(() => setLayerHostSelector('.msla-designer-canvas'), []);
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="msla-designer-canvas msla-panel-mode">
         <ReactFlowProvider>
           <ReactFlow
             nodeTypes={nodeTypes}
-            nodes={nodes}
+            nodes={nodesWithPlaceholder}
             edges={edges}
             onNodesChange={onNodesChange}
-            minZoom={0}
             nodesDraggable={false}
             edgeTypes={edgeTypes}
             panOnScroll={true}
@@ -85,9 +156,10 @@ export const Designer = () => {
             <PanelRoot />
           </ReactFlow>
           <div className="msla-designer-tools">
-            <Minimap />
             <Controls />
+            <Minimap />
           </div>
+          <CanvasFinder />
         </ReactFlowProvider>
       </div>
     </DndProvider>

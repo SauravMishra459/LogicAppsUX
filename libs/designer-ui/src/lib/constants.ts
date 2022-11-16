@@ -234,7 +234,7 @@ export default {
     VALUELINK: 'valuelink',
     VALUELIST: 'valuelist',
   },
-  // NOTE(johnwa): The resources string for category are matching with prefix: TEMPLATE_PICKER_CATEGORY_
+  // Note: The resources string for category are matching with prefix: TEMPLATE_PICKER_CATEGORY_
   TEMPLATE_CATEGORIES: ['BLOCKCHAIN', 'ENTERPRISE_INTEGRATION', 'GENERAL', 'PRODUCTIVITY', 'SCHEDULE', 'SECURITY', 'SOCIAL', 'SYNC'],
   TEMPLATE_PICKER_SORT: {
     CREATED_TIME: 'TEMPLATE_PICKER_SORT_CREATED_TIME',
@@ -278,9 +278,44 @@ export default {
     MAX_COMMENT_LENGTH: 256,
     DEFAULT_ICON: 'https://connectoricons-prod.azureedge.net/releases/v1.0.1550/1.0.1550.2686/azureblob/icon.png',
   },
+  SWAGGER: {
+    TYPE: {
+      ANY: 'any',
+      ARRAY: 'array',
+      BOOLEAN: 'boolean',
+      FILE: 'file',
+      INTEGER: 'integer',
+      NUMBER: 'number',
+      OBJECT: 'object',
+      STRING: 'string',
+    },
+    FORMAT: {
+      BINARY: 'binary',
+      BYTE: 'byte',
+      DATAURI: 'datauri',
+      DATE: 'date',
+      DATETIME: 'date-time',
+      DOUBLE: 'double',
+      EMAIL: 'email',
+      FLOAT: 'float',
+      HOSTNAME: 'hostname',
+      INT32: 'int32',
+      INT64: 'int64',
+      IPV4: 'ipv4',
+      IPV6: 'ipv6',
+      HTML: 'html',
+      JAVASCRIPT: 'javascript',
+      URI: 'uri',
+      UUID: 'uuid',
+    },
+    EXTENSION: {
+      CAPABILITIES: 'x-ms-capabilities',
+    },
+  },
 
   EXPANDED_DICTIONARY_WIDTH_OFFSET: {
-    KEY_OFFSET: -269,
+    KEY_OFFSET: -278,
     VALUE_OFFSET: -7,
   },
+  DROPDOWN_CALLOUT_MAX_HEIGHT: 380,
 };

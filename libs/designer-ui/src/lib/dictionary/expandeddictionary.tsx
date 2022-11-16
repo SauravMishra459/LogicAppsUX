@@ -1,9 +1,9 @@
 import type { DictionaryEditorItemProps } from '.';
 import constants from '../constants';
+import type { TokenPickerHandler } from '../editor/base';
 import { BaseEditor } from '../editor/base';
 import type { ButtonOffSet } from '../editor/base/plugins/TokenPickerButton';
 import { DictionaryDeleteButton } from './expandeddictionarydelete';
-import { DeleteDictionaryItem } from './plugins/DeleteDictionaryItem';
 import { SerializeExpandedDictionary } from './plugins/SerializeExpandedDictionary';
 import { isEmpty } from './util/helper';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
@@ -16,14 +16,26 @@ export enum ExpandedDictionaryEditorType {
 }
 export interface ExpandedDictionaryProps {
   items: DictionaryEditorItemProps[];
+  isTrigger?: boolean;
+  readonly?: boolean;
+  keyTitle?: string;
+  valueTitle?: string;
   setItems: (items: DictionaryEditorItemProps[]) => void;
-  GetTokenPicker: (editorId: string, labelId: string, onClick?: (b: boolean) => void) => JSX.Element;
+  tokenPickerHandler: TokenPickerHandler;
 }
 
-export const ExpandedDictionary = ({ items, GetTokenPicker, setItems }: ExpandedDictionaryProps): JSX.Element => {
+export const ExpandedDictionary = ({
+  items,
+  isTrigger,
+  readonly,
+  keyTitle,
+  valueTitle,
+  tokenPickerHandler,
+  setItems,
+}: ExpandedDictionaryProps): JSX.Element => {
   const intl = useIntl();
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<(HTMLDivElement | null)[]>([]);
 
   const [pickerOffset, setPickerOffset] = useState<ButtonOffSet>();
   const [currIndex, setCurrIndex] = useState<number>(0);
@@ -43,15 +55,18 @@ export const ExpandedDictionary = ({ items, GetTokenPicker, setItems }: Expanded
   });
 
   const updateHeight = (index: number, type: ExpandedDictionaryEditorType) => {
-    const offset = editorRef.current?.offsetHeight;
-    const height = containerRef.current?.offsetHeight;
-    if (offset && height) {
+    if (containerRef.current && editorRef.current[index]) {
+      const containerBottomLoc = window.scrollY + containerRef.current.getBoundingClientRect().top + containerRef.current.offsetHeight;
+      let itemHeight = window.scrollY;
+      itemHeight += editorRef.current[index]?.getBoundingClientRect().top ?? 0;
+      const itemWidth =
+        type === ExpandedDictionaryEditorType.KEY
+          ? editorRef.current[index]?.getBoundingClientRect().width ?? constants.EXPANDED_DICTIONARY_WIDTH_OFFSET.KEY_OFFSET
+          : 0;
+
       setPickerOffset({
-        heightOffset: height - offset * index,
-        widthOffset:
-          type === ExpandedDictionaryEditorType.KEY
-            ? constants.EXPANDED_DICTIONARY_WIDTH_OFFSET.KEY_OFFSET
-            : constants.EXPANDED_DICTIONARY_WIDTH_OFFSET.VALUE_OFFSET,
+        heightOffset: containerBottomLoc - itemHeight,
+        widthOffset: constants.EXPANDED_DICTIONARY_WIDTH_OFFSET.VALUE_OFFSET - itemWidth,
       });
     }
   };
@@ -64,22 +79,28 @@ export const ExpandedDictionary = ({ items, GetTokenPicker, setItems }: Expanded
       setItems([...items, { key: [], value: [] }]);
     }
   };
+
   return (
-    <div className="msla-dictionary-container msla-dictionary-item-container" ref={containerRef}>
+    <div className="msla-dictionary-container msla-dictionary-editor-expanded" ref={containerRef}>
+      {keyTitle || valueTitle ? (
+        <div className="msla-dictionary-editor-item">
+          <div className="msla-dictionary-item-header">{keyTitle}</div>
+          <div className="msla-dictionary-item-header">{valueTitle}</div>
+        </div>
+      ) : null}
       {items.map((item, index) => {
         return (
           <div key={index} className="msla-dictionary-editor-item">
-            <div className="msla-dictionary-item-cell" ref={editorRef}>
+            <div className="msla-dictionary-item-cell" aria-label={`dict-item-${index}`} ref={(el) => (editorRef.current[index] = el)}>
               <BaseEditor
                 className="msla-dictionary-editor-container-expanded"
                 placeholder={keyPlaceholder}
                 initialValue={item.key ?? []}
+                isTrigger={isTrigger}
+                readonly={readonly}
                 BasePlugins={{ tokens: true, clearEditor: true, autoFocus: false }}
+                tokenPickerHandler={{ ...tokenPickerHandler, tokenPickerButtonProps: { buttonOffset: pickerOffset } }}
                 onFocus={() => addItem(index, ExpandedDictionaryEditorType.KEY)}
-                tokenPickerButtonProps={{
-                  buttonOffset: pickerOffset,
-                }}
-                GetTokenPicker={GetTokenPicker}
               >
                 <OnChangePlugin onChange={onChange} />
                 <SerializeExpandedDictionary
@@ -89,20 +110,18 @@ export const ExpandedDictionary = ({ items, GetTokenPicker, setItems }: Expanded
                   type={ExpandedDictionaryEditorType.KEY}
                   setItems={setItems}
                 />
-                <DeleteDictionaryItem items={items} index={index} type={ExpandedDictionaryEditorType.KEY} />
               </BaseEditor>
             </div>
-            <div className="msla-dictionary-item-cell">
+            <div className="msla-dictionary-item-cell" ref={(el) => (editorRef.current[index] = el)}>
               <BaseEditor
                 className="msla-dictionary-editor-container-expanded"
                 placeholder={valuePlaceholder}
                 initialValue={item.value ?? []}
+                isTrigger={isTrigger}
+                readonly={readonly}
                 BasePlugins={{ tokens: true, clearEditor: true, autoFocus: false }}
-                tokenPickerButtonProps={{
-                  buttonOffset: pickerOffset,
-                }}
+                tokenPickerHandler={{ ...tokenPickerHandler, tokenPickerButtonProps: { buttonOffset: pickerOffset } }}
                 onFocus={() => addItem(index, ExpandedDictionaryEditorType.VALUE)}
-                GetTokenPicker={GetTokenPicker}
               >
                 <OnChangePlugin onChange={onChange} />
                 <SerializeExpandedDictionary
@@ -112,7 +131,6 @@ export const ExpandedDictionary = ({ items, GetTokenPicker, setItems }: Expanded
                   type={ExpandedDictionaryEditorType.VALUE}
                   setItems={setItems}
                 />
-                <DeleteDictionaryItem items={items} index={index} type={ExpandedDictionaryEditorType.VALUE} />
               </BaseEditor>
             </div>
             <DictionaryDeleteButton items={items} index={index} setItems={setItems} />
