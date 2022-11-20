@@ -1,5 +1,6 @@
 import chevronDown from './plugins/icons/chevron-down.svg';
 import fontFamily from './plugins/icons/font-family.svg';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as React from 'react';
@@ -133,11 +134,12 @@ export default function DropDown({
   const dropDownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [showDropDown, setShowDropDown] = useState(false);
+  const [editor] = useLexicalComposerContext();
 
   const handleClose = () => {
-    setShowDropDown(false);
-    if (buttonRef && buttonRef.current) {
-      buttonRef.current.focus();
+    if (!stopCloseOnClickSelf) {
+      setShowDropDown(false);
+      editor.focus();
     }
   };
 
@@ -151,28 +153,6 @@ export default function DropDown({
       dropDown.style.left = `${Math.min(left, window.innerWidth - dropDown.offsetWidth - 20)}px`;
     }
   }, [dropDownRef, buttonRef, showDropDown]);
-
-  useEffect(() => {
-    const button = buttonRef.current;
-
-    if (button !== null && showDropDown) {
-      const handle = (event: MouseEvent) => {
-        const target = event.target;
-        if (stopCloseOnClickSelf) {
-          if (dropDownRef.current && dropDownRef.current.contains(target as Node)) return;
-        }
-        if (!button.contains(target as Node)) {
-          setShowDropDown(false);
-        }
-      };
-      document.addEventListener('click', handle);
-
-      return () => {
-        document.removeEventListener('click', handle);
-      };
-    }
-    return;
-  }, [dropDownRef, buttonRef, showDropDown, stopCloseOnClickSelf]);
 
   return (
     <>

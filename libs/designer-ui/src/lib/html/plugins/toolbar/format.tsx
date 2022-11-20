@@ -2,7 +2,7 @@ import { isApple } from '../../../helper';
 import bold from '../icons/type-bold.svg';
 import italic from '../icons/type-italic.svg';
 import underline from '../icons/type-underline.svg';
-import { ColorPicker } from './colorpicker';
+import { ColorPicker } from './ColorPicker';
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from 'lexical';
@@ -16,7 +16,7 @@ export const Format = ({ activeEditor }: FormatProps) => {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
-  const [fontColor] = useState<string>('#000');
+  const [fontColor, setFontColor] = useState<string>('#000');
 
   const updateFormat = useCallback(() => {
     const selection = $getSelection();
@@ -74,8 +74,9 @@ export const Format = ({ activeEditor }: FormatProps) => {
         buttonAriaLabel="Formatting text color"
         buttonIconClassName="icon font-color"
         color={fontColor}
-        onChange={() => {
-          console.log('yo');
+        onChange={(color) => {
+          console.log(color);
+          setFontColor(color);
         }}
         title="text color"
       />
