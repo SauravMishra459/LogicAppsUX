@@ -42,10 +42,6 @@ export const ColorPicker = ({ color, children, onChange, ...dropdownProps }: Col
   const [selfColor, setSelfColor] = useState(transformColor('hex', color));
   const [inputColor, setInputColor] = useState(color);
   const innerDivRef = useRef(null);
-  useEffect(() => {
-    console.log(selfColor);
-    console.log(inputColor);
-  });
 
   const saturationPosition = useMemo(
     () => ({

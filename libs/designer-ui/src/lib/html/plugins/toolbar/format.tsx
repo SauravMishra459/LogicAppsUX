@@ -75,7 +75,6 @@ export const Format = ({ activeEditor }: FormatProps) => {
         buttonIconClassName="icon font-color"
         color={fontColor}
         onChange={(color) => {
-          console.log(color);
           setFontColor(color);
         }}
         title="text color"

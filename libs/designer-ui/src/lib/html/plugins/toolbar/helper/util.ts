@@ -56,7 +56,6 @@ function rgb2hsv({ red, green, blue }: RGB): HSV {
 }
 
 export function hsv2rgb({ hue, saturation, value }: HSV): RGB {
-  console.log(hue, saturation, value);
   const currSaturation = saturation / 100;
   const currValue = value / 100;
 
@@ -82,7 +81,6 @@ export function transformColor<M extends keyof Color, C extends Color[M]>(format
   let hex: Color['hex'] = toHex('#121212');
   let rgb: Color['rgb'] = hex2rgb(hex);
   let hsv: Color['hsv'] = rgb2hsv(rgb);
-  console.log(format, color);
 
   if (format === 'hex') {
     const value = color as Color['hex'];
@@ -100,7 +98,6 @@ export function transformColor<M extends keyof Color, C extends Color[M]>(format
     const value = color as Color['hsv'];
 
     hsv = value;
-    console.log(hsv);
     rgb = hsv2rgb(hsv);
     hex = rgb2hex(rgb);
   }
