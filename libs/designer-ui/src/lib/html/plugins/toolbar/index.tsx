@@ -1,10 +1,8 @@
-import { isApple } from '../../helper';
-import { FontDropDown } from '../FontDropDown';
-import clockWiseArrow from './icons/arrow-clockwise.svg';
-import counterClockWiseArrow from './icons/arrow-counterclockwise.svg';
-import bold from './icons/type-bold.svg';
-import italic from './icons/type-italic.svg';
-import underline from './icons/type-underline.svg';
+import { isApple } from '../../../helper';
+import { FontDropDown } from '../../FontDropDown';
+import clockWiseArrow from '../icons/arrow-clockwise.svg';
+import counterClockWiseArrow from '../icons/arrow-counterclockwise.svg';
+import { Format } from './format';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelectionStyleValueForProperty } from '@lexical/selection';
 import { mergeRegister } from '@lexical/utils';
@@ -14,7 +12,6 @@ import {
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
   COMMAND_PRIORITY_CRITICAL,
-  FORMAT_TEXT_COMMAND,
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical';
@@ -42,17 +39,11 @@ export function Toolbar() {
   const [canRedo, setCanRedo] = useState(false);
   const [fontFamily, setFontFamily] = useState<string>('Arial');
   const [fontSize, setFontSize] = useState<string>('15px');
-  const [isBold, setIsBold] = useState(false);
-  const [isItalic, setIsItalic] = useState(false);
-  const [isUnderline, setIsUnderline] = useState(false);
   // const [blockType, setBlockType] = useState<blockTypeToBlockName>(blockTypeToBlockName.paragraph);
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
-      setIsBold(selection.hasFormat('bold'));
-      setIsItalic(selection.hasFormat('italic'));
-      setIsUnderline(selection.hasFormat('underline'));
       setFontFamily($getSelectionStyleValueForProperty(selection, 'font-family', 'Arial'));
       setFontSize($getSelectionStyleValueForProperty(selection, 'font-size', '12px'));
     }
@@ -109,45 +100,14 @@ export function Toolbar() {
         <img className={'format'} src={clockWiseArrow} alt={'clockwise arrow'} />
       </button>
       <Divider />
-
-      <Divider />
       <FontDropDown hasStyle={'font-family'} value={fontFamily} editor={editor} />
       <FontDropDown hasStyle={'font-size'} value={fontSize} editor={editor} />
       <Divider />
-      <button
-        onClick={() => {
-          activeEditor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
-        }}
-        className={'toolbar-item spaced ' + (isBold ? 'active' : '')}
-        title={isApple() ? 'Bold (⌘B)' : 'Bold (Ctrl+B)'}
-        aria-label={`Format text as bold. Shortcut: ${isApple() ? '⌘B' : 'Ctrl+B'}`}
-      >
-        <img className={'format'} src={bold} alt={'bold icon'} />
-      </button>
-      <button
-        onClick={() => {
-          activeEditor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
-        }}
-        className={'toolbar-item spaced ' + (isItalic ? 'active' : '')}
-        title={isApple() ? 'Italic (⌘I)' : 'Italic (Ctrl+I)'}
-        aria-label={`Format text as italics. Shortcut: ${isApple() ? '⌘I' : 'Ctrl+I'}`}
-      >
-        <img className={'format'} src={italic} alt={'italic icon'} />
-      </button>
-      <button
-        onClick={() => {
-          activeEditor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
-        }}
-        className={'toolbar-item spaced ' + (isUnderline ? 'active' : '')}
-        title={isApple() ? 'Underline (⌘U)' : 'Underline (Ctrl+U)'}
-        aria-label={`Format text to underlined. Shortcut: ${isApple() ? '⌘U' : 'Ctrl+U'}`}
-      >
-        <img className={'format'} src={underline} alt={'underline icon'} />
-      </button>
+      <Format activeEditor={activeEditor} />
     </div>
   );
 }
 
-function Divider(): JSX.Element {
+const Divider = (): JSX.Element => {
   return <div className="msla-toolbar-divider" />;
-}
+};

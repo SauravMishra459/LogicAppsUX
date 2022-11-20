@@ -4,16 +4,17 @@ import { getExpressionTokenSections } from '../../../core/utils/tokens';
 import { guid } from '@microsoft-logic-apps/utils';
 import type { OutputToken, PanelTab, TokenPickerHandler, ValueSegment } from '@microsoft/designer-ui';
 import {
-  ArrayEditor,
-  ArrayType, // DictionaryEditor,
+  // ArrayEditor,
+  // ArrayType, // DictionaryEditor,
   // TokenType,
   // GroupType,
   // GroupDropdownOptions,
   // QueryBuilderEditor, // DictionaryType, // EditorLanguage,
-  ValueSegmentType, // CodeEditor, // HTMLEditor,
+  ValueSegmentType, // CodeEditor,
+  HTMLEditor,
   TokenPicker, // TokenType,
   // DictionaryEditor,
-  testTokenSegment, // SchemaEditor, // Combobox,
+  // testTokenSegment, // SchemaEditor, // Combobox,
   // ArrayEditor,
   Scratch, // StringEditor, // AuthenticationEditor,
   // DropdownEditor,
@@ -149,7 +150,7 @@ export const ScratchTab = () => {
           ]}
         /> */}
         {/* <AuthenticationEditor initialValue={[]} tokenPickerHandler={tokenPickerHandler} AuthenticationEditorOptions={{}} authProps={{}} /> */}
-        <ArrayEditor
+        {/* <ArrayEditor
           type={ArrayType.SIMPLE}
           labelProps={{ text: 'Input Array', isRequiredField: true }}
           initialValue={[
@@ -183,7 +184,7 @@ export const ScratchTab = () => {
             { id: guid(), type: ValueSegmentType.LITERAL, value: '",\n            "p2": ""\n        }\n    }\n]' },
           ]}
           tokenPickerHandler={tokenPickerHandler}
-        />
+        /> */}
 
         {/* <Combobox
           options={[
@@ -350,7 +351,7 @@ export const ScratchTab = () => {
           ]}
           tokenPickerHandler={tokenPickerHandler}
         /> */}
-        {/* <HTMLEditor initialValue={[]} placeholder="Specify the body of the mail" tokenPickerHandler={tokenPickerHandler} /> */}
+        <HTMLEditor initialValue={[]} placeholder="Specify the body of the mail" tokenPickerHandler={tokenPickerHandler} />
       </>
     );
   };
