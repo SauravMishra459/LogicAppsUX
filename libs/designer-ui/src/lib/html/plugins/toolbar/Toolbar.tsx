@@ -2,7 +2,7 @@ import { isApple } from '../../../helper';
 import { FontDropDown } from '../../FontDropDown';
 import clockWiseArrow from '../icons/arrow-clockwise.svg';
 import counterClockWiseArrow from '../icons/arrow-counterclockwise.svg';
-import { Format } from './test3';
+import { Format } from './Format';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelectionStyleValueForProperty } from '@lexical/selection';
 import { mergeRegister } from '@lexical/utils';
@@ -32,7 +32,7 @@ export enum blockTypeToBlockName {
   quote = 'Quote',
 }
 
-export function Toolbar() {
+export const Toolbar = () => {
   const [editor] = useLexicalComposerContext();
   const [activeEditor] = useState(editor);
   const [canUndo, setCanUndo] = useState(false);
@@ -106,7 +106,7 @@ export function Toolbar() {
       <Format activeEditor={activeEditor} />
     </div>
   );
-}
+};
 
 const Divider = (): JSX.Element => {
   return <div className="msla-toolbar-divider" />;
