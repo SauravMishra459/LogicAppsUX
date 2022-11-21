@@ -1,4 +1,4 @@
-import { Toolbar } from '../../html/plugins/toolbar';
+import { Toolbar } from '../../html/plugins/toolbar/test2';
 import type { ValueSegment } from '../models/parameter';
 import { TokenNode } from './nodes/tokenNode';
 import { AutoFocus } from './plugins/AutoFocus';

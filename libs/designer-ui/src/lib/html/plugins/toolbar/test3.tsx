@@ -2,7 +2,7 @@ import { isApple } from '../../../helper';
 import bold from '../icons/type-bold.svg';
 import italic from '../icons/type-italic.svg';
 import underline from '../icons/type-underline.svg';
-import { ColorPicker } from './ColorPicker';
+import { ColorPicker } from './test';
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from 'lexical';
