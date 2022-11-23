@@ -39,6 +39,7 @@ export const Toolbar = () => {
   const [canRedo, setCanRedo] = useState(false);
   const [fontFamily, setFontFamily] = useState<string>('Arial');
   const [fontSize, setFontSize] = useState<string>('15px');
+  // const [fontColor, setFontColor] = useState<string>('#000000');
   // const [blockType, setBlockType] = useState<blockTypeToBlockName>(blockTypeToBlockName.paragraph);
 
   const updateToolbar = useCallback(() => {

@@ -1,4 +1,6 @@
 import constants from '../../../common/constants';
+import type { RootState } from '../../../core';
+import { hideTokenPicker, showTokenPicker } from '../../../core/state/panel/panelSlice';
 import type { TokenGroup } from '../../../core/utils/tokens';
 import { getExpressionTokenSections } from '../../../core/utils/tokens';
 import { guid } from '@microsoft-logic-apps/utils';
@@ -21,6 +23,7 @@ import {
   outputToken,
   outputToken2, // RowDropdownOptions,
 } from '@microsoft/designer-ui';
+import { useDispatch, useSelector } from 'react-redux';
 
 const testTokenGroup: TokenGroup[] = [
   { id: guid(), label: 'Checks if Blob exists in Azure Storage', tokens: [outputToken, outputToken2] },
@@ -28,7 +31,13 @@ const testTokenGroup: TokenGroup[] = [
 ];
 
 export const ScratchTab = () => {
+  const dispatch = useDispatch();
   const expressionGroup = getExpressionTokenSections();
+  const { tokenPickerVisibility } = useSelector((state: RootState) => {
+    return {
+      tokenPickerVisibility: state.panel.tokenPickerVisibility,
+    };
+  });
 
   const getValueSegmentFromToken = async (token: OutputToken): Promise<ValueSegment> => {
     const { key, brandColor, icon, title, description, name, type, value, outputInfo } = token;
@@ -59,6 +68,18 @@ export const ScratchTab = () => {
     return segment;
   };
 
+  const showTokenPickerSwitch = (show?: boolean) => {
+    if (show) {
+      dispatch(showTokenPicker());
+    } else {
+      if (tokenPickerVisibility) {
+        dispatch(hideTokenPicker());
+      } else {
+        dispatch(showTokenPicker());
+      }
+    }
+  };
+
   const GetTokenPicker = (
     editorId: string,
     labelId: string,
@@ -76,11 +97,15 @@ export const ScratchTab = () => {
         getValueSegmentFromToken={getValueSegmentFromToken}
         tokenClickedCallback={tokenClicked}
         tokenPickerHide={tokenPickerHide}
+        showTokenPickerSwitch={showTokenPickerSwitch}
       />
     );
   };
 
-  const tokenPickerHandler: TokenPickerHandler = { getTokenPicker: GetTokenPicker, tokenPickerProps: {} };
+  const tokenPickerHandler: TokenPickerHandler = {
+    getTokenPicker: GetTokenPicker,
+    tokenPickerProps: { tokenPickerVisibility, showTokenPickerSwitch },
+  };
   const children = (): React.ReactNode => {
     return (
       <>

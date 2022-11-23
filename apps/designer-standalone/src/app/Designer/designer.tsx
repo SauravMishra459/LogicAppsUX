@@ -77,7 +77,6 @@ export const DesignerWrapper = () => {
   };
 
   useEffect(() => document.body.classList.add('is-standalone'), []);
-
   return (
     <>
       <SettingsBox />

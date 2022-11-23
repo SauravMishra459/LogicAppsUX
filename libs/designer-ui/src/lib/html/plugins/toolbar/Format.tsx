@@ -3,6 +3,7 @@ import bold from '../icons/type-bold.svg';
 import italic from '../icons/type-italic.svg';
 import underline from '../icons/type-underline.svg';
 import { ColorPicker } from './ColorPicker';
+import { $patchStyleText } from '@lexical/selection';
 import { mergeRegister } from '@lexical/utils';
 import type { LexicalEditor } from 'lexical';
 import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from 'lexical';
@@ -26,6 +27,18 @@ export const Format = ({ activeEditor }: FormatProps) => {
       setIsUnderline(selection.hasFormat('underline'));
     }
   }, []);
+
+  useEffect(() => {
+    console.log(fontColor);
+    activeEditor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        $patchStyleText(selection, {
+          color: fontColor,
+        });
+      }
+    });
+  }, [fontColor, activeEditor]);
 
   useEffect(() => {
     return mergeRegister(
