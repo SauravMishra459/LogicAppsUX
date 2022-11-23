@@ -10,14 +10,14 @@ import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from 'lexical';
 import { useCallback, useEffect, useState } from 'react';
 
 interface FormatProps {
+  fontColor: string;
   activeEditor: LexicalEditor;
 }
 
-export const Format = ({ activeEditor }: FormatProps) => {
+export const Format = ({ fontColor, activeEditor }: FormatProps) => {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [isUnderline, setIsUnderline] = useState(false);
-  const [fontColor, setFontColor] = useState<string>('#000');
 
   const updateFormat = useCallback(() => {
     const selection = $getSelection();
@@ -28,17 +28,19 @@ export const Format = ({ activeEditor }: FormatProps) => {
     }
   }, []);
 
-  useEffect(() => {
-    console.log(fontColor);
-    activeEditor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        $patchStyleText(selection, {
-          color: fontColor,
-        });
-      }
-    });
-  }, [fontColor, activeEditor]);
+  const handleColorChange = useCallback(
+    (option: string) => {
+      activeEditor.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          $patchStyleText(selection, {
+            color: option,
+          });
+        }
+      });
+    },
+    [activeEditor]
+  );
 
   useEffect(() => {
     return mergeRegister(
@@ -88,7 +90,7 @@ export const Format = ({ activeEditor }: FormatProps) => {
         buttonIconClassName="icon font-color"
         color={fontColor}
         onChange={(color) => {
-          setFontColor(color);
+          handleColorChange(color);
         }}
         title="text color"
       />

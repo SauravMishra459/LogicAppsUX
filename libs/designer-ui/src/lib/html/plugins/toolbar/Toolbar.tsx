@@ -39,6 +39,7 @@ export const Toolbar = () => {
   const [canRedo, setCanRedo] = useState(false);
   const [fontFamily, setFontFamily] = useState<string>('Arial');
   const [fontSize, setFontSize] = useState<string>('15px');
+  const [fontColor, setFontColor] = useState<string>('#000');
   // const [fontColor, setFontColor] = useState<string>('#000000');
   // const [blockType, setBlockType] = useState<blockTypeToBlockName>(blockTypeToBlockName.paragraph);
 
@@ -47,6 +48,7 @@ export const Toolbar = () => {
     if ($isRangeSelection(selection)) {
       setFontFamily($getSelectionStyleValueForProperty(selection, 'font-family', 'Arial'));
       setFontSize($getSelectionStyleValueForProperty(selection, 'font-size', '12px'));
+      setFontColor($getSelectionStyleValueForProperty(selection, 'font-color', '#000'));
     }
   }, []);
 
@@ -104,7 +106,7 @@ export const Toolbar = () => {
       <FontDropDown hasStyle={'font-family'} value={fontFamily} editor={editor} />
       <FontDropDown hasStyle={'font-size'} value={fontSize} editor={editor} />
       <Divider />
-      <Format activeEditor={activeEditor} />
+      <Format fontColor={fontColor} activeEditor={activeEditor} />
     </div>
   );
 };
