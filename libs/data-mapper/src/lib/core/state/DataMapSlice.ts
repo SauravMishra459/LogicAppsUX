@@ -6,21 +6,25 @@ import {
   errorNotificationAutoHideDuration,
 } from '../../components/notification/Notification';
 import type { SchemaExtended, SchemaNodeDictionary, SchemaNodeExtended } from '../../models';
-import { SchemaNodeProperty, SchemaType } from '../../models';
+import { SchemaType } from '../../models';
 import type { ConnectionDictionary, InputConnection } from '../../models/Connection';
 import type { FunctionData, FunctionDictionary } from '../../models/Function';
 import { findLast } from '../../utils/Array.Utils';
 import {
   addNodeToConnections,
+  bringInParentSourceNodesForRepeating,
   createConnectionEntryIfNeeded,
   flattenInputs,
   getConnectedSourceSchemaNodes,
+  getConnectedTargetSchemaNodes,
   getFunctionConnectionUnits,
   getTargetSchemaNodeConnections,
   isConnectionUnit,
   nodeHasSpecificInputEventually,
   updateConnectionInputValue,
 } from '../../utils/Connection.Utils';
+import { addParentConnectionForRepeatingElementsNested } from '../../utils/DataMap.Utils';
+import { isFunctionData } from '../../utils/Function.Utils';
 import {
   addReactFlowPrefix,
   addSourceReactFlowPrefix,
@@ -90,7 +94,6 @@ export interface InitialDataMapAction {
 export interface ConnectionAction {
   source: SchemaNodeExtended | FunctionData;
   destination: SchemaNodeExtended | FunctionData;
-
   reactFlowSource: string;
   reactFlowDestination: string;
 }
@@ -110,7 +113,6 @@ export interface DeleteConnectionAction {
 }
 
 // TODO: Go through and clean-up duplicate and un-used actions/reducers
-
 export const dataMapSlice = createSlice({
   name: 'dataMap',
   initialState,
@@ -131,6 +133,7 @@ export const dataMapSlice = createSlice({
       } else {
         state.curDataMapOperation.targetSchema = action.payload.schema;
         state.curDataMapOperation.flattenedTargetSchema = flattenedSchema;
+        state.curDataMapOperation.currentTargetSchemaNode = undefined;
         state.pristineDataMap.targetSchema = action.payload.schema;
         state.pristineDataMap.flattenedTargetSchema = flattenedSchema;
       }
@@ -350,7 +353,15 @@ export const dataMapSlice = createSlice({
       doDataMapOperation(state, newState);
     },
 
+    deleteConnection: (state, action: PayloadAction<{ inputKey: string; outputKey: string }>) => {
+      const newState = { ...state.curDataMapOperation };
+      deleteConnectionFromConnections(newState.dataMapConnections, action.payload.inputKey, action.payload.outputKey);
+
+      doDataMapOperation(state, newState);
+    },
+
     makeConnection: (state, action: PayloadAction<ConnectionAction>) => {
+      const numConnections = Object.keys(state.curDataMapOperation.dataMapConnections).length;
       const newState: DataMapOperationState = {
         ...state.curDataMapOperation,
         dataMapConnections: { ...state.curDataMapOperation.dataMapConnections },
@@ -359,58 +370,53 @@ export const dataMapSlice = createSlice({
       addConnection(newState.dataMapConnections, action.payload);
 
       // Add any repeating parent nodes as well
-      const parentTargetNode = newState.currentTargetSchemaNode;
-      const sourceNode = action.payload.source;
-      if (parentTargetNode && isSchemaNodeExtended(sourceNode)) {
-        if (sourceNode.parentKey) {
-          const firstTargetNodeWithRepeatingPathItem = findLast(parentTargetNode.pathToRoot, (pathItem) => pathItem.repeating);
-          const prefixedTargetKey = addReactFlowPrefix(parentTargetNode.key, SchemaType.Target);
-
-          const prefixedSourceKey = addReactFlowPrefix(sourceNode.parentKey, SchemaType.Source);
-          const parentSourceNode = newState.flattenedSourceSchema[prefixedSourceKey];
-          const firstSourceNodeWithRepeatingPathItem = findLast(parentSourceNode.pathToRoot, (pathItem) => pathItem.repeating);
-
-          if (firstSourceNodeWithRepeatingPathItem && firstTargetNodeWithRepeatingPathItem) {
-            const parentPrefixedSourceKey = addReactFlowPrefix(firstSourceNodeWithRepeatingPathItem.key, SchemaType.Source);
-            const parentSourceNode = newState.flattenedSourceSchema[parentPrefixedSourceKey];
-
-            const parentPrefixedTargetKey = addReactFlowPrefix(firstTargetNodeWithRepeatingPathItem.key, SchemaType.Target);
-            const parentTargetNode = newState.flattenedTargetSchema[parentPrefixedTargetKey];
-
-            const parentsAlreadyConnected = nodeHasSpecificInputEventually(
-              parentPrefixedSourceKey,
-              newState.dataMapConnections[parentPrefixedTargetKey],
-              newState.dataMapConnections,
-              true
-            );
-
-            if (!parentsAlreadyConnected) {
-              addNodeToConnections(
-                newState.dataMapConnections,
-                parentSourceNode,
-                parentPrefixedSourceKey,
-                parentTargetNode,
-                parentPrefixedTargetKey
-              );
-              state.notificationData = { type: NotificationTypes.ArrayConnectionAdded };
-            }
-          }
-
-          if (
-            parentSourceNode.nodeProperties.indexOf(SchemaNodeProperty.Repeating) > -1 &&
-            nodeHasSpecificInputEventually(
-              prefixedSourceKey,
-              newState.dataMapConnections[prefixedTargetKey],
-              newState.dataMapConnections,
-              true
-            )
-          ) {
-            if (!newState.currentSourceSchemaNodes.find((node) => node.key === parentSourceNode.key)) {
-              newState.currentSourceSchemaNodes.push(parentSourceNode);
-            }
-          }
-        }
+      // Get all the source nodes in case we have sources from multiple source chains
+      const originalSourceNode = action.payload.source;
+      let actualSources: SchemaNodeExtended[];
+      if (isFunctionData(originalSourceNode)) {
+        const sourceNodes = getConnectedSourceSchemaNodes(
+          [newState.dataMapConnections[action.payload.reactFlowSource]],
+          newState.dataMapConnections
+        );
+        actualSources = sourceNodes;
+      } else {
+        actualSources = [originalSourceNode];
       }
+
+      // We'll only have one output node in this case
+      const originalTargetNode = action.payload.destination;
+      let actualTarget: SchemaNodeExtended[];
+      if (isFunctionData(originalTargetNode)) {
+        const targetNodes = getConnectedTargetSchemaNodes(
+          [newState.dataMapConnections[action.payload.reactFlowDestination]],
+          newState.dataMapConnections
+        );
+        actualTarget = targetNodes;
+      } else {
+        actualTarget = [originalTargetNode];
+      }
+
+      actualSources.forEach((sourceNode) => {
+        if (actualTarget.length > 0) {
+          addParentConnectionForRepeatingElementsNested(
+            sourceNode,
+            actualTarget[0],
+            newState.flattenedSourceSchema,
+            newState.flattenedTargetSchema,
+            newState.dataMapConnections
+          );
+
+          // If new parent connection has been made
+          if (Object.keys(newState.dataMapConnections).length !== numConnections + 2) {
+            state.notificationData = { type: NotificationTypes.ArrayConnectionAdded };
+          }
+
+          // Bring in correct source nodes
+          // Loop through parent nodes connected to
+          const parentTargetNode = state.curDataMapOperation.currentTargetSchemaNode;
+          bringInParentSourceNodesForRepeating(parentTargetNode, newState);
+        }
+      });
 
       doDataMapOperation(state, newState);
     },
@@ -526,6 +532,7 @@ export const dataMapSlice = createSlice({
 });
 
 export const {
+  deleteConnection,
   setXsltFilename,
   setInitialSchema,
   setInitialDataMap,
