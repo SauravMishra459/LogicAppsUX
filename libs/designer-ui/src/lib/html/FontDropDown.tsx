@@ -29,7 +29,17 @@ const FONT_SIZE_OPTIONS: [string, string][] = [
   ['20px', '20px'],
 ];
 
-export function FontDropDown({ editor, value, hasStyle }: { editor: LexicalEditor; value: string; hasStyle: string }): JSX.Element {
+export function FontDropDown({
+  editor,
+  value,
+  hasStyle,
+  setNodeStyles,
+}: {
+  editor: LexicalEditor;
+  value: string;
+  hasStyle: string;
+  setNodeStyles: (input: Record<string, string>) => void;
+}): JSX.Element {
   const handleClick = useCallback(
     (option: string) => {
       editor.update(() => {
@@ -40,8 +50,9 @@ export function FontDropDown({ editor, value, hasStyle }: { editor: LexicalEdito
           });
         }
       });
+      setNodeStyles({ [hasStyle]: option });
     },
-    [editor, hasStyle]
+    [editor, hasStyle, setNodeStyles]
   );
 
   const buttonAriaLabel = hasStyle === 'font-family' ? 'Formatting options for font family' : 'Formatting options for font size';

@@ -80,7 +80,6 @@ export const ColorPicker = ({ color, children, onChange, ...dropdownProps }: Col
   const onMoveHue = ({ x }: Position) => {
     const newHsv = { ...selfColor.hsv, hue: (x / WIDTH) * 360 };
     const newColor = transformColor('hsv', newHsv);
-
     setSelfColor(newColor);
     setInputColor(newColor.hex);
   };

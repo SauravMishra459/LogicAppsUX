@@ -14,12 +14,14 @@ export const MoveWrapper = ({ className, style, onChange, children }: MoveWrappe
   const move = (e: React.MouseEvent | MouseEvent): void => {
     if (divRef.current) {
       const { current: div } = divRef;
-      const { width, height, left, top } = div.getBoundingClientRect();
+      const { width, height, left, top, right } = div.getBoundingClientRect();
 
-      const x = clamp(e.clientX - left, width, 0);
-      const y = clamp(e.clientY - top, height, 0);
+      if (e.clientX <= right && e.clientX >= left) {
+        const x = clamp(e.clientX - left, width, 0);
+        const y = clamp(e.clientY - top, height, 0);
 
-      onChange({ x, y });
+        onChange({ x, y });
+      }
     }
   };
 

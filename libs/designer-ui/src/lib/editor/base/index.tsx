@@ -1,7 +1,8 @@
-import { Toolbar } from '../../html/plugins/toolbar';
+import { Toolbar } from '../../html/plugins/toolbar/Toolbar';
 import type { ValueSegment } from '../models/parameter';
 import { TokenNode } from './nodes/tokenNode';
 import { AutoFocus } from './plugins/AutoFocus';
+import FormatTextNode from './plugins/AutoFormat';
 import AutoLink from './plugins/AutoLink';
 import ClearEditor from './plugins/ClearEditor';
 import DeleteTokenNode from './plugins/DeleteTokenNode';
@@ -23,7 +24,7 @@ import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin as History } from '@lexical/react/LexicalHistoryPlugin';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { useFunctionalState } from '@react-hookz/web';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 
 export { testTokenSegment, outputToken, outputToken2 } from '../shared/testtokensegment';
@@ -103,11 +104,16 @@ export const BaseEditor = ({
   const intl = useIntl();
   const editorId = useId('msla-tokenpicker-callout-location');
   const labelId = useId('msla-tokenpicker-callout-label');
+  const [nodeStyles, setNodeStyles] = useState<Record<string, string>>({});
   const [showTokenPickerButton, setShowTokenPickerButton] = useState(false);
   const [getInTokenPicker, setInTokenPicker] = useFunctionalState(false);
   const { getTokenPicker, tokenPickerProps, tokenPickerButtonProps } = tokenPickerHandler || {};
   const { customButton = false } = tokenPickerButtonProps || {};
   const { tokenPickerVisibility, showTokenPickerSwitch } = tokenPickerProps || {};
+
+  useEffect(() => {
+    console.log(nodeStyles);
+  }, [nodeStyles]);
 
   const initialConfig = {
     theme: EditorTheme,
@@ -161,7 +167,7 @@ export const BaseEditor = ({
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <div className={className ?? 'msla-editor-container'} id={editorId}>
-        {toolBar ? <Toolbar /> : null}
+        {toolBar ? <Toolbar setNodeStyles={setNodeStyles} /> : null}
         <RichTextPlugin
           contentEditable={<ContentEditable className={css('editor-input', readonly && 'readonly')} ariaLabel={editorInputLabel} />}
           placeholder={<span className="editor-placeholder"> {placeholder} </span>}
@@ -170,6 +176,7 @@ export const BaseEditor = ({
         {autoFocus ? <AutoFocus /> : null}
         {history ? <History /> : null}
         {autoLink ? <AutoLink /> : null}
+        {toolBar ? <FormatTextNode newStyles={nodeStyles} /> : null}
         {clearEditor ? <ClearEditor showButton={false} /> : null}
 
         {!isTrigger && ((tokens && showTokenPickerButton) || getInTokenPicker()) ? (
