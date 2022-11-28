@@ -32,7 +32,7 @@ export enum blockTypeToBlockName {
   quote = 'Quote',
 }
 
-export const Toolbar = () => {
+export const Toolbar = ({ setNodeStyles }: { setNodeStyles: (input: Record<string, string>) => void }) => {
   const [editor] = useLexicalComposerContext();
   const [activeEditor] = useState(editor);
   const [canUndo, setCanUndo] = useState(false);
@@ -40,7 +40,6 @@ export const Toolbar = () => {
   const [fontFamily, setFontFamily] = useState<string>('Arial');
   const [fontSize, setFontSize] = useState<string>('15px');
   const [fontColor, setFontColor] = useState<string>('#000');
-  // const [fontColor, setFontColor] = useState<string>('#000000');
   // const [blockType, setBlockType] = useState<blockTypeToBlockName>(blockTypeToBlockName.paragraph);
 
   const updateToolbar = useCallback(() => {
@@ -103,8 +102,8 @@ export const Toolbar = () => {
         <img className={'format'} src={clockWiseArrow} alt={'clockwise arrow'} />
       </button>
       <Divider />
-      <FontDropDown hasStyle={'font-family'} value={fontFamily} editor={editor} />
-      <FontDropDown hasStyle={'font-size'} value={fontSize} editor={editor} />
+      <FontDropDown hasStyle={'font-family'} value={fontFamily} editor={editor} setNodeStyles={setNodeStyles} />
+      <FontDropDown hasStyle={'font-size'} value={fontSize} editor={editor} setNodeStyles={setNodeStyles} />
       <Divider />
       <Format fontColor={fontColor} activeEditor={activeEditor} />
     </div>
