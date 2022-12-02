@@ -1,8 +1,8 @@
 import { isApple } from '../../../helper';
-import { FontDropDown } from '../../FontDropDown';
 import clockWiseArrow from '../icons/arrow-clockwise.svg';
 import counterClockWiseArrow from '../icons/arrow-counterclockwise.svg';
 import { Format } from './Format';
+import { FontDropDown } from './helper/FontDropDown';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelectionStyleValueForProperty } from '@lexical/selection';
 import { mergeRegister } from '@lexical/utils';

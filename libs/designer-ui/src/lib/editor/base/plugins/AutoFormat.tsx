@@ -19,7 +19,11 @@ export default function FormatTextNoden({ newStyles }: { newStyles: Record<strin
       });
       try {
         const selection = $getSelection();
-        if (!$isRangeSelection(selection)) {
+        if (
+          $isRangeSelection(selection) &&
+          selection.anchor.key === selection.focus.key &&
+          selection.anchor.offset === selection.focus.offset
+        ) {
           console.log('here');
           // eslint-disable-next-line no-param-reassign
           node.__style = styles2.join(';');

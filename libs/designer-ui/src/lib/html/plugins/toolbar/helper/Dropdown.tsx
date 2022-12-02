@@ -1,5 +1,5 @@
-import chevronDown from './plugins/icons/chevron-down.svg';
-import fontFamily from './plugins/icons/font-family.svg';
+import chevronDown from './../../icons/chevron-down.svg';
+import fontFamily from './../../icons/font-family.svg';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

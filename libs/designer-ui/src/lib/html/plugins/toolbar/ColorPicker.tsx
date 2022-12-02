@@ -1,31 +1,11 @@
-import DropDown from '../../Dropdown';
 import { TextInput } from './ColorPickerTextInput';
+import DropDown from './helper/Dropdown';
 import { MoveWrapper } from './helper/MoveWrapper';
+import { basicColors, COLORPICKER_HEIGHT as HEIGHT, COLORPICKER_WIDTH as WIDTH } from './helper/constants';
 import type { Position } from './helper/util';
 import { transformColor } from './helper/util';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-
-const basicColors = [
-  '#d0021b',
-  '#f5a623',
-  '#f8e71c',
-  '#8b572a',
-  '#7ed321',
-  '#417505',
-  '#bd10e0',
-  '#9013fe',
-  '#4a90e2',
-  '#50e3c2',
-  '#b8e986',
-  '#000000',
-  '#4a4a4a',
-  '#9b9b9b',
-  '#ffffff',
-];
-
-const WIDTH = 214;
-const HEIGHT = 150;
 
 interface ColorPickerProps {
   buttonAriaLabel?: string;

@@ -1,33 +1,9 @@
 import DropDown, { DropDownItem } from './Dropdown';
+import { FONT_FAMILY_OPTIONS, FONT_SIZE_OPTIONS } from './constants';
 import { $patchStyleText } from '@lexical/selection';
 import type { LexicalEditor } from 'lexical';
 import { $isRangeSelection, $getSelection } from 'lexical';
 import { useCallback } from 'react';
-
-const FONT_FAMILY_OPTIONS: [string, string][] = [
-  ['Arial', 'Arial'],
-  ['Courier New', 'Courier New'],
-  ['Georgia', 'Georgia'],
-  ['Impact', 'Impact'],
-  ['Tahoma', 'Tahoma'],
-  ['Times New Roman', 'Times New Roman'],
-  ['Trebuchet MS', 'Trebuchet MS'],
-  ['Verdana', 'Verdana'],
-];
-
-const FONT_SIZE_OPTIONS: [string, string][] = [
-  ['10px', '10px'],
-  ['11px', '11px'],
-  ['12px', '12px'],
-  ['13px', '13px'],
-  ['14px', '14px'],
-  ['15px', '15px'],
-  ['16px', '16px'],
-  ['17px', '17px'],
-  ['18px', '18px'],
-  ['19px', '19px'],
-  ['20px', '20px'],
-];
 
 export function FontDropDown({
   editor,
