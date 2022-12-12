@@ -33,6 +33,16 @@ export interface CreateConnectionResult {
   errorMessage?: string;
 }
 
+export interface ConsentLink {
+  link: string;
+  displayName?: string;
+  status?: string;
+}
+
+export interface LogicAppConsentResponse {
+  value: ConsentLink[];
+}
+
 export interface IConnectionService {
   [x: string]: any;
   dispose(): void;

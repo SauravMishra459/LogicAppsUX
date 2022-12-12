@@ -1,3 +1,4 @@
+import type { HttpResponse } from '@microsoft/utils-logic-apps';
 import { BaseException } from '@microsoft/utils-logic-apps';
 
 export const ServiceExceptionName = 'Host.ServiceException';
@@ -24,14 +25,6 @@ export class ServiceException extends BaseException {
   constructor(message: string, code?: string, data?: Record<string, any>) {
     super(ServiceExceptionName, message, code, data);
   }
-}
-
-export interface HttpResponse<T> {
-  body?: T;
-  headers: Headers;
-  ok: boolean;
-  status: number;
-  url: string;
 }
 
 export const throwWhenNotOk = (response: HttpResponse<any>) => {

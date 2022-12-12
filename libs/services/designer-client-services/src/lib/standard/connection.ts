@@ -1,5 +1,3 @@
-/* eslint-disable no-param-reassign */
-import type { HttpResponse } from '../common/exceptions/service';
 import type {
   ConnectionCreationInfo,
   ConnectionParametersMetadata,
@@ -14,7 +12,7 @@ import type { IOAuthPopup } from '../oAuth';
 import { OAuthService } from '../oAuth';
 import { azureFunctionConnectorId } from './operationmanifest';
 import { getIntl } from '@microsoft/intl-logic-apps';
-import type { Connection, ConnectionParameter, Connector, ManagedIdentity } from '@microsoft/utils-logic-apps';
+import type { Connection, ConnectionParameter, Connector, HttpResponse, ManagedIdentity } from '@microsoft/utils-logic-apps';
 import {
   getUniqueName,
   isIdentityAssociatedWithLogicApp,
@@ -97,17 +95,6 @@ interface StandardConnectionServiceArgs {
 }
 
 export type getAccessTokenType = () => Promise<string>;
-
-export interface ConsentLink {
-  link: string;
-  displayName?: string;
-  status?: string;
-}
-
-export interface LogicAppConsentResponse {
-  value: ConsentLink[];
-}
-
 interface ConnectionsData {
   managedApiConnections?: any;
   serviceProviderConnections?: Record<string, ServiceProviderConnectionModel>;
@@ -753,6 +740,7 @@ export class StandardConnectionService implements IConnectionService {
     if (isUnique) {
       return connectionName;
     } else {
+      // eslint-disable-next-line no-param-reassign
       connectionName = `${connectorName}-${i++}`;
       return this._getUniqueConnectionNameInApiHub(connectorName, connectorId, connectionName, i);
     }
