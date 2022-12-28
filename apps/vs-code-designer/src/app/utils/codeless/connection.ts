@@ -5,15 +5,15 @@ import { tryGetFunctionProjectRoot } from '../verifyIsProject';
 import { getContainingWorkspace } from '../workspace';
 import { getAuthorizationToken } from './getAuthorizationToken';
 import { getParametersJson } from './parameter';
-import type {
-  ServiceProviderConnectionModel,
-  ConnectionAndSettings,
-  ConnectionReferenceModel,
-  Parameter,
-} from '@microsoft/utils-logic-apps';
 import { HTTP_METHODS } from '@microsoft/utils-logic-apps';
 import { nonNullValue } from '@microsoft/vscode-azext-utils';
 import type { IActionContext } from '@microsoft/vscode-azext-utils';
+import type {
+  ServiceProviderConnectionModel,
+  Parameter,
+  ConnectionAndSettings,
+  ConnectionReferenceModel,
+} from '@microsoft/vscode-extension';
 import * as fse from 'fs-extra';
 import * as path from 'path';
 import * as requestP from 'request-promise';
@@ -72,7 +72,7 @@ async function getConnectionReference(
   return requestP(options)
     .then((response) => {
       const appSettingKey = `${referenceKey}-connectionKey`;
-      settingsToAdd[appSettingKey] = response.connectionKey; // eslint-disable-line no-param-reassign
+      settingsToAdd[appSettingKey] = response.connectionKey;
 
       return {
         api: { id },

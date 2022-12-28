@@ -16,19 +16,20 @@ export interface IDesignerPanelMetadata {
   parametersData: Record<string, Parameter>;
   localSettings: Record<string, string>;
   azureDetails: AzureConnectorDetails;
-  workflowContent: any;
   workflowDetails: Record<string, any>;
   artifacts: Artifacts;
-  configuredWebhookEndpoint: string;
+  workflowContent?: any;
+  configuredWebhookEndpoint?: string;
+  accessToken?: string;
 }
 
 export interface CodelessApp {
   statelessRunMode?: string;
   definition: LogicAppsV2.WorkflowDefinition;
-  name: string;
-  stateful: boolean;
+  name?: string;
+  stateful?: boolean;
   kind: string;
-  operationOptions: string;
+  operationOptions?: string;
 }
 
 export interface AzureConnectorDetails {
@@ -50,7 +51,53 @@ export interface WorkflowParameter {
 
 export interface IWorkflowFileContent {
   name: string;
-  definition: Record<string, any>;
+  definition: any; // Work to be done
   kind: string;
-  isDisabled: boolean;
+  runtimeConfiguration: {
+    statelessRunMode: string;
+    operationOptions: string;
+  };
+}
+
+export interface ICallbackUrlResponse {
+  value: string;
+  method: string;
+  basePath?: string;
+  relativePath?: string;
+  relativeParameters?: [];
+  queries?: Record<string, any>;
+}
+
+export enum WorkflowProjectType {
+  Nuget = 'Nuget',
+  Bundle = 'Bundle',
+}
+
+export interface ISettingToAdd {
+  key: string;
+  value: string | boolean | Record<string, any>;
+  prefix?: string;
+}
+
+export interface IWorkflowStateTypeStepOptions {
+  isProjectWizard: boolean;
+  templateId: string | undefined;
+  triggerSettings: { [key: string]: string | undefined } | undefined;
+}
+
+export enum MismatchBehavior {
+  /**
+   * Asks the user if they want to overwrite
+   */
+  Prompt,
+
+  /**
+   * Overwrites without prompting
+   */
+  Overwrite,
+
+  /**
+   * Returns without changing anything
+   */
+  DontChange,
 }
