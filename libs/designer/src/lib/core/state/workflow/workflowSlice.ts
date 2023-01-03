@@ -198,6 +198,7 @@ export const workflowSlice = createSlice({
       }
       const { caseId, nodeId } = action.payload;
       const node = getWorkflowNodeFromGraphState(state, state.nodesMetadata[nodeId].graphId);
+      // updateUpstreamNodes()
       if (!node) throw new Error('node not set');
       addSwitchCaseToWorkflow(caseId, node, state.nodesMetadata, state);
     },

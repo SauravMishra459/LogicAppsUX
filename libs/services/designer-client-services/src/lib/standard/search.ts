@@ -99,8 +99,12 @@ export class StandardSearchService implements ISearchService {
       ...queryParams,
     };
 
-    const { nextLink, value } = await httpClient.get<ContinuationTokenResponse<Connector[]>>({ uri, queryParameters });
-    return { value, hasMore: !!nextLink };
+    try {
+      const { nextLink, value } = await httpClient.get<ContinuationTokenResponse<Connector[]>>({ uri, queryParameters });
+      return { value, hasMore: !!nextLink };
+    } catch (error) {
+      return { value: [], hasMore: false };
+    }
   }
 
   async batchAzureResourceRequests(uri: string, queryParams?: any): Promise<any[]> {
@@ -125,6 +129,23 @@ export class StandardSearchService implements ISearchService {
     }
 
     return output;
+  }
+
+  async getAzureResourceRecursive(uri: string, queryParams: any): Promise<any[]> {
+    const { httpClient } = this.options;
+
+    const requestPage = async (uri: string, value: any[], queryParameters?: any): Promise<any> => {
+      try {
+        const { nextLink, value: newValue } = await httpClient.get<ContinuationTokenResponse<Connector[]>>({ uri, queryParameters });
+        value.push(...newValue);
+        if (nextLink) return await requestPage(nextLink, value);
+        return value;
+      } catch (error) {
+        return value;
+      }
+    };
+
+    return requestPage(uri, [], queryParams);
   }
 
   async getAllAzureOperations(): Promise<DiscoveryOpArray> {
@@ -196,7 +217,7 @@ export class StandardSearchService implements ISearchService {
   }
 }
 
-function getClientBuiltInOperations(showStatefulOperations = false): DiscoveryOperation<BuiltInOperation>[] {
+export function getClientBuiltInOperations(showStatefulOperations = false): DiscoveryOperation<BuiltInOperation>[] {
   const allOperations: DiscoveryOperation<BuiltInOperation>[] = [
     ClientOperationsData.requestOperation,
     ClientOperationsData.responseOperation,
@@ -235,7 +256,7 @@ function getClientBuiltInOperations(showStatefulOperations = false): DiscoveryOp
   return allOperations.filter((operation) => filterStateful(operation, showStatefulOperations));
 }
 
-function getClientBuiltInConnectors(showStatefulOperations = false): Connector[] {
+export function getClientBuiltInConnectors(showStatefulOperations = false): Connector[] {
   const allConnectors: any[] = [
     ClientOperationsData.requestGroup,
     ClientOperationsData.httpGroup,

@@ -1,5 +1,5 @@
 import { customTokens } from '../../../core';
-import { updateConnectionInput } from '../../../core/state/DataMapSlice';
+import { setConnectionInput } from '../../../core/state/DataMapSlice';
 import type { AppDispatch, RootState } from '../../../core/state/Store';
 import type { Connection, InputConnection } from '../../../models/Connection';
 import type { FunctionData } from '../../../models/Function';
@@ -15,6 +15,7 @@ import {
   isFunctionData,
 } from '../../../utils/Function.Utils';
 import { getIconForFunction, iconForNormalizedDataType } from '../../../utils/Icon.Utils';
+import { LogCategory, LogService } from '../../../utils/Logging.Utils';
 import { isSchemaNodeExtended } from '../../../utils/Schema.Utils';
 import { InputDropdown } from '../../inputDropdown/InputDropdown';
 import { Stack } from '@fluentui/react';
@@ -107,13 +108,21 @@ export const FunctionNodePropertiesTab = ({ functionData }: FunctionNodeProperti
 
   const updateInput = (inputIndex: number, newValue: InputConnection | null) => {
     if (!selectedItemKey) {
-      console.error('PropPane - Function: Attempted to update input with nothing selected on canvas');
+      LogService.error(LogCategory.FunctionNodePropertiesTab, 'updateInput', {
+        message: 'Attempted to update input with nothing selected on canvas',
+      });
+
       return;
     }
 
     const targetNodeReactFlowKey = selectedItemKey;
     dispatch(
-      updateConnectionInput({ targetNode: functionData, targetNodeReactFlowKey, inputIndex, value: newValue, isUnboundedInput: true })
+      setConnectionInput({
+        targetNode: functionData,
+        targetNodeReactFlowKey,
+        inputIndex,
+        value: newValue,
+      })
     );
   };
 
@@ -144,8 +153,11 @@ export const FunctionNodePropertiesTab = ({ functionData }: FunctionNodeProperti
       if (connection?.inputs) {
         Object.values(connection.inputs).forEach((inputValueArray, idx) => {
           if (!(idx in newInputValueArrays)) {
-            console.error('Connection inputs had more input-value-arrays than its Function had input slots - connection.inputs ->');
-            console.error(Object.values(connection.inputs));
+            LogService.error(LogCategory.FunctionNodePropertiesTab, 'useEffect', {
+              message: 'Connection inputs had more input-value-arrays than its Function had input slots',
+              inputs: Object.values(connection.inputs),
+            });
+
             return;
           }
 
@@ -251,6 +263,7 @@ export const FunctionNodePropertiesTab = ({ functionData }: FunctionNodeProperti
                       }
                       inputIndex={idx}
                       inputStyles={{ width: '100%' }}
+                      inputAllowsCustomValues={input.allowCustomInput}
                     />
                   </Tooltip>
                 </div>
@@ -263,7 +276,7 @@ export const FunctionNodePropertiesTab = ({ functionData }: FunctionNodeProperti
               {inputValueArrays &&
                 0 in inputValueArrays && // Unbounded input value mapping
                 inputValueArrays[0].map((unboundedInputValue, idx) => (
-                  <Stack key={`${functionData.inputs[0].name}-${idx}`} horizontal verticalAlign="end" style={{ marginTop: 8 }}>
+                  <Stack key={`${functionData.inputs[0].name}-${idx}`} horizontal verticalAlign="start" style={{ marginTop: 8 }}>
                     <Tooltip relationship="label" content={functionData.inputs[0].tooltip || ''}>
                       <InputDropdown
                         currentNode={functionData}
@@ -272,6 +285,7 @@ export const FunctionNodePropertiesTab = ({ functionData }: FunctionNodeProperti
                         inputValue={unboundedInputValue}
                         inputIndex={idx}
                         inputStyles={{ width: '100%' }}
+                        inputAllowsCustomValues={functionData.inputs[0].allowCustomInput}
                         isUnboundedInput
                       />
                     </Tooltip>
@@ -280,7 +294,7 @@ export const FunctionNodePropertiesTab = ({ functionData }: FunctionNodeProperti
                       appearance="subtle"
                       icon={<Delete20Regular />}
                       onClick={() => removeUnboundedInput(idx)}
-                      style={{ marginLeft: '16px' }}
+                      style={{ marginLeft: '16px', marginTop: '26px' }}
                       aria-label={removeInputLoc}
                     />
                   </Stack>
@@ -313,15 +327,18 @@ export const FunctionNodePropertiesTab = ({ functionData }: FunctionNodeProperti
                             inputValue={inputValueArray.length > 0 ? inputValueArray[0] : undefined}
                             inputIndex={idx + 1}
                             inputStyles={{ width: '100%' }}
+                            inputAllowsCustomValues={functionData.inputs[idx + 1].allowCustomInput}
                           />
                         </Tooltip>
                       </div>
                     ) : (
-                      console.error(
-                        `inputValueArrays had value-array for an unspecified input on Function ${functionData.functionName} at idx ${
-                          idx + 1
-                        }: ${inputValueArray.map((inputVal) => (inputVal === undefined ? 'undefined' : `'${inputVal}'`)).toString()}`
-                      )
+                      LogService.error(LogCategory.FunctionNodePropertiesTab, 'render', {
+                        message: `inputValueArrays had value-array for an unspecified input on Function ${
+                          functionData.functionName
+                        } at idx ${idx + 1}: ${inputValueArray
+                          .map((inputVal) => (inputVal === undefined ? 'undefined' : `'${inputVal}'`))
+                          .toString()}`,
+                      })
                     )
                 )}
             </>
