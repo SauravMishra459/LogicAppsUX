@@ -1,10 +1,11 @@
 import type { TestMapResponse } from '../../core';
 import { testDataMap } from '../../core/queries/datamap';
 import type { RootState } from '../../core/state/Store';
+import { LogCategory, LogService } from '../../utils/Logging.Utils';
 import { ChoiceGroup, DefaultButton, Panel, PanelType, Pivot, PivotItem, PrimaryButton, Text } from '@fluentui/react';
 import { makeStyles, shorthands, tokens } from '@fluentui/react-components';
-import { EditorLanguage, MonacoEditor } from '@microsoft/designer-ui';
 import type { MonacoProps } from '@microsoft/designer-ui';
+import { EditorLanguage, MonacoEditor } from '@microsoft/designer-ui';
 import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useSelector } from 'react-redux';
@@ -57,6 +58,7 @@ export const TestMapPanel = ({ isOpen, onClose }: TestMapPanelProps) => {
   const styles = useStyles();
 
   const dataMapXsltFilename = useSelector((state: RootState) => state.dataMap.curDataMapOperation.xsltFilename);
+  const currentTheme = useSelector((state: RootState) => state.app.theme);
 
   const [selectedInputOption, setSelectedInputOption] = useState<string | undefined>('pasteSample');
   const [selectedPivotItem, setSelectedPivotItem] = useState<PanelPivotItems>(PanelPivotItems.Input);
@@ -127,8 +129,11 @@ export const TestMapPanel = ({ isOpen, onClose }: TestMapPanelProps) => {
         setTestMapResponse(response);
       })
       .catch((error: Error) => {
+        LogService.error(LogCategory.TestMapPanel, 'testDataMap', {
+          message: error.message,
+        });
+
         setTestMapResponse(undefined);
-        console.error(error.message);
       });
   };
 
@@ -152,6 +157,7 @@ export const TestMapPanel = ({ isOpen, onClose }: TestMapPanelProps) => {
       closeButtonAriaLabel={closeLoc}
       onRenderFooterContent={getFooterContent}
       isFooterAtBottom={true}
+      overlayProps={{ isDarkThemed: currentTheme === 'dark' }}
       isLightDismiss
     >
       <Pivot

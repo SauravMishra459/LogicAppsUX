@@ -3,7 +3,6 @@ import type { RootState } from '../../../core';
 import { hideTokenPicker, showTokenPicker } from '../../../core/state/panel/panelSlice';
 import type { TokenGroup } from '../../../core/utils/tokens';
 import { getExpressionTokenSections } from '../../../core/utils/tokens';
-import { guid } from '@microsoft-logic-apps/utils';
 import type { OutputToken, PanelTab, TokenPickerHandler, ValueSegment } from '@microsoft/designer-ui';
 import {
   // ArrayEditor,
@@ -23,6 +22,7 @@ import {
   outputToken,
   outputToken2, // RowDropdownOptions,
 } from '@microsoft/designer-ui';
+import { guid } from '@microsoft/utils-logic-apps';
 import { useDispatch, useSelector } from 'react-redux';
 
 const testTokenGroup: TokenGroup[] = [

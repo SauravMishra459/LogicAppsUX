@@ -2,44 +2,43 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { projectLanguageSetting, funcVersionSetting, projectSubpathSetting } from '../../constants';
+import { funcVersionSetting, projectLanguageSetting, projectSubpathSetting } from '../../constants';
 import { ext } from '../../extensionVariables';
 import { localize } from '../../localize';
-import { isLocalProjectCV, isProjectCV, isRemoteProjectCV } from './projectContextValues';
+import { isLocalProjectCV, isProjectCV, isRemoteProjectCV } from '../utils/tree/projectContextValues';
+import { SubscriptionTreeItem } from './subscriptionTree/SubscriptionTreeItem';
 import type { ServiceClientCredentials } from '@azure/ms-rest-js';
 import { AzureAccountTreeItemBase } from '@microsoft/vscode-azext-azureutils';
+import type { AzExtTreeItem, IActionContext, ISubscriptionContext } from '@microsoft/vscode-azext-utils';
 import { callWithTelemetryAndErrorHandling } from '@microsoft/vscode-azext-utils';
-import type { AzExtTreeItem, IActionContext } from '@microsoft/vscode-azext-utils';
 import { commands, Disposable, extensions, workspace } from 'vscode';
 
 export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
-  private _currentLoggedInSessions: any;
-  private _projectDisposables: Disposable[] = [];
+  private currentLoggedInSessions: any;
+  private projectDisposables: Disposable[] = [];
 
-  public constructor(testAccount?: Record<string, never>) {
+  public constructor(testAccount?: Record<string, any>) {
     super(undefined, testAccount);
+
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async () => {
         await callWithTelemetryAndErrorHandling(
           'AzureAccountTreeItemWithProjects.onDidChangeWorkspaceFolders',
           async (context: IActionContext) => {
-            // eslint-disable-next-line no-param-reassign
             context.errorHandling.suppressDisplay = true;
-            // eslint-disable-next-line no-param-reassign
             context.telemetry.suppressIfSuccessful = true;
             await this.refresh(context);
           }
         );
       })
     );
+
     this.disposables.push(
       workspace.onDidChangeConfiguration(async (e) => {
         await callWithTelemetryAndErrorHandling(
           'AzureAccountTreeItemWithProjects.onDidChangeConfiguration',
           async (context: IActionContext) => {
-            // eslint-disable-next-line no-param-reassign
             context.errorHandling.suppressDisplay = true;
-            // eslint-disable-next-line no-param-reassign
             context.telemetry.suppressIfSuccessful = true;
             const settings: string[] = [projectLanguageSetting, funcVersionSetting, projectSubpathSetting];
             if (settings.some((s) => e.affectsConfiguration(`${ext.prefix}.${s}`))) {
@@ -53,12 +52,11 @@ export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
 
   public dispose(): void {
     super.dispose();
-    Disposable.from(...this._projectDisposables).dispose();
+    Disposable.from(...this.projectDisposables).dispose();
   }
 
-  // Work to be done
-  public createSubscriptionTreeItem(): undefined {
-    return undefined;
+  public createSubscriptionTreeItem(root: ISubscriptionContext): SubscriptionTreeItem {
+    return new SubscriptionTreeItem(this, root);
   }
 
   public async getAccountCredentials(tenantId?: string): Promise<ServiceClientCredentials | undefined> {
@@ -73,11 +71,11 @@ export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
       }
 
       await azureAccount.waitForFilters();
-      this._currentLoggedInSessions = azureAccount.sessions;
+      this.currentLoggedInSessions = azureAccount.sessions;
     }
 
-    if (this._currentLoggedInSessions) {
-      return this._getCredentialsForSessions(this._currentLoggedInSessions, tenantId);
+    if (this.currentLoggedInSessions) {
+      return this._getCredentialsForSessions(this.currentLoggedInSessions, tenantId);
     }
 
     return undefined;
@@ -88,8 +86,8 @@ export class AzureAccountTreeItemWithProjects extends AzureAccountTreeItemBase {
     return children;
   }
 
-  public compareChildrenImpl(_item1: AzExtTreeItem, _item2: AzExtTreeItem): number {
-    return -1;
+  public compareChildrenImpl(item1: AzExtTreeItem, item2: AzExtTreeItem): number {
+    return super.compareChildrenImpl(item1, item2);
   }
 
   public async pickTreeItemImpl(expectedContextValues: (string | RegExp)[]): Promise<AzExtTreeItem | undefined> {
