@@ -1,5 +1,6 @@
-import { targetPrefix } from '../constants/ReactFlowConstants';
-import type { SchemaNodeDictionary, SchemaNodeExtended } from '../models';
+import { mapNodeParams } from '../constants/MapDefinitionConstants';
+import { sourcePrefix, targetPrefix } from '../constants/ReactFlowConstants';
+import type { MapDefinitionEntry, SchemaNodeDictionary, SchemaNodeExtended } from '../models';
 import { SchemaType } from '../models';
 import type { Connection, ConnectionDictionary } from '../models/Connection';
 import type { FunctionData } from '../models/Function';
@@ -12,7 +13,7 @@ import {
   nodeHasSpecificInputEventually,
   setConnectionInputValue,
 } from './Connection.Utils';
-import { findFunctionForKey, getIndexValueForCurrentConnection, isFunctionData } from './Function.Utils';
+import { findFunctionForFunctionName, findFunctionForKey, getIndexValueForCurrentConnection, isFunctionData } from './Function.Utils';
 import { addReactFlowPrefix } from './ReactFlow.Util';
 import { findNodeForKey, isSchemaNodeExtended } from './Schema.Utils';
 import { isAGuid } from '@microsoft/utils-logic-apps';
@@ -32,6 +33,7 @@ export const getInputValues = (currentConnection: Connection | undefined, connec
             return undefined;
           }
 
+          // Handle custom values, source schema node, and Function inputs for Function nodes
           if (isCustomValue(input)) {
             return input;
           } else if (isSchemaNodeExtended(input.node)) {
@@ -97,12 +99,18 @@ export const isValidToMakeMapDefinition = (connections: ConnectionDictionary): b
 };
 
 export const getDestinationNode = (targetKey: string, functions: FunctionData[], schemaTreeRoot: SchemaNodeExtended): UnknownNode => {
+  if (targetKey.startsWith(mapNodeParams.if)) {
+    return findFunctionForFunctionName(mapNodeParams.if, functions);
+  }
+
   const dashIndex = targetKey.indexOf('-');
-  const destinationFunctionKey = dashIndex === -1 ? targetKey : targetKey.slice(0, dashIndex); // what is the purpose of this??
+  const destinationFunctionKey = dashIndex === -1 ? targetKey : targetKey.slice(0, dashIndex);
   const destinationFunctionGuid = targetKey.slice(dashIndex + 1);
-  const destinationNode = isAGuid(destinationFunctionGuid) // danielle this needs to be amended for conditional
+
+  const destinationNode = isAGuid(destinationFunctionGuid)
     ? findFunctionForKey(destinationFunctionKey, functions)
     : findNodeForKey(targetKey, schemaTreeRoot);
+
   return destinationNode;
 };
 
@@ -110,9 +118,11 @@ export const getDestinationKey = (targetKey: string, destinationNode: UnknownNod
   if (destinationNode === undefined) {
     return targetKey;
   }
+
   if (isSchemaNodeExtended(destinationNode)) {
     return `${targetPrefix}${destinationNode?.key}`;
   }
+
   return targetKey;
 };
 
@@ -166,24 +176,109 @@ export const splitKeyIntoChildren = (sourceKey: string): string[] => {
   return results;
 };
 
-export const getSourceValueFromLoop = (sourceKey: string, targetKey: string): string => {
-  let constructedSourceKey = '';
-  const matchArr = targetKey.match(/\$for\(((?!\)).)+\)\//g);
-  let match = matchArr?.[matchArr.length - 1];
-  if (match) {
-    match = match.replace('$for(', '').replace(')', '');
+export const getSourceKeyOfLastLoop = (targetKey: string): string => {
+  const forArgs = targetKey.substring(targetKey.lastIndexOf(mapNodeParams.for) + mapNodeParams.for.length + 1, targetKey.lastIndexOf(')'));
+  return forArgs.split(',')[0]; // Filter out index variable if any
+};
+
+export const getSourceValueFromLoop = (sourceKey: string, targetKey: string, sourceSchemaFlattened: SchemaNodeDictionary): string => {
+  let constructedSourceKey = sourceKey;
+  const srcKeyWithinFor = getSourceKeyOfLastLoop(targetKey);
+
+  // Deserialize dot accessors as their parent loop's source node
+  if (constructedSourceKey === '.') {
+    return srcKeyWithinFor;
+  } else {
+    let idxOfDotAccess = constructedSourceKey.indexOf('.');
+    while (idxOfDotAccess > -1) {
+      const preChar = constructedSourceKey[idxOfDotAccess - 1];
+      const postChar = constructedSourceKey[idxOfDotAccess + 1];
+
+      // Make sure the input is just '.'
+      let newStartIdx = idxOfDotAccess + 1;
+      if ((preChar === '(' || preChar === ' ') && (postChar === ')' || postChar === ',')) {
+        constructedSourceKey =
+          constructedSourceKey.substring(0, idxOfDotAccess) + srcKeyWithinFor + constructedSourceKey.substring(idxOfDotAccess + 1);
+        newStartIdx += srcKeyWithinFor.length;
+      }
+
+      idxOfDotAccess = constructedSourceKey.indexOf('.', newStartIdx);
+    }
   }
 
-  const endOfLastFunctionIndex = sourceKey.lastIndexOf('(');
-  if (endOfLastFunctionIndex > 0) {
-    constructedSourceKey =
-      sourceKey.substring(0, sourceKey.lastIndexOf('(') + 1) +
-      match +
-      sourceKey.substring(sourceKey.lastIndexOf('(') + 1, sourceKey.length + 1);
+  const relativeSrcKeyArr = sourceKey
+    .split(', ')
+    .map((keyChunk) => {
+      let modifiedKeyChunk = keyChunk;
+
+      // Functions with no inputs
+      if (modifiedKeyChunk.includes('()')) {
+        return '';
+      }
+
+      // Will only ever be one or zero '(' after splitting on commas
+      const openParenIdx = modifiedKeyChunk.lastIndexOf('(');
+      if (openParenIdx >= 0) {
+        modifiedKeyChunk = modifiedKeyChunk.substring(openParenIdx + 1);
+      }
+
+      // Should only ever be one or zero ')' after ruling out substrings w/ functions w/ no inputs
+      modifiedKeyChunk = modifiedKeyChunk.replaceAll(')', '');
+
+      return modifiedKeyChunk;
+    })
+    .filter((keyChunk) => keyChunk !== '');
+
+  if (relativeSrcKeyArr.length > 0) {
+    relativeSrcKeyArr.forEach((relativeKeyMatch) => {
+      if (!relativeKeyMatch.includes(srcKeyWithinFor)) {
+        // Replace './' to deal with relative attribute paths
+        const fullyQualifiedSourceKey = `${srcKeyWithinFor}/${relativeKeyMatch.replace('./', '')}`;
+        const isValidSrcNode = !!sourceSchemaFlattened[`${sourcePrefix}${fullyQualifiedSourceKey}`];
+
+        constructedSourceKey = isValidSrcNode
+          ? constructedSourceKey.replace(relativeKeyMatch, fullyQualifiedSourceKey)
+          : constructedSourceKey;
+      }
+    });
   } else {
-    constructedSourceKey = match + sourceKey;
+    const fullyQualifiedSourceKey = `${srcKeyWithinFor}/${sourceKey}`;
+    constructedSourceKey = sourceSchemaFlattened[`${sourcePrefix}${fullyQualifiedSourceKey}`] ? fullyQualifiedSourceKey : sourceKey;
   }
+
   return constructedSourceKey;
+};
+
+export const qualifyLoopRelativeSourceKeys = (targetKey: string): string => {
+  let qualifiedTargetKey = targetKey;
+  const srcKeys: string[] = [];
+
+  const splitLoops = qualifiedTargetKey.split(')');
+  splitLoops.forEach((splitLoop) => {
+    if (splitLoop.includes(mapNodeParams.for)) {
+      srcKeys.push(getSourceKeyOfLastLoop(`${splitLoop})`));
+    }
+  });
+
+  let curSrcParentKey = srcKeys[0];
+  srcKeys.forEach((srcKey) => {
+    if (!srcKey.includes(curSrcParentKey)) {
+      const fullyQualifiedSrcKey = `${curSrcParentKey}/${srcKey}`;
+      qualifiedTargetKey = qualifiedTargetKey.replace(srcKey, fullyQualifiedSrcKey);
+
+      curSrcParentKey = fullyQualifiedSrcKey;
+    } else {
+      curSrcParentKey = srcKey;
+    }
+  });
+
+  return qualifiedTargetKey;
+};
+
+export const getTargetValueWithoutLastLoop = (targetKey: string): string => {
+  const forMatchArr = targetKey.match(/\$for\(((?!\)).)+\)\//g);
+  const forMatch = forMatchArr?.[forMatchArr.length - 1];
+  return forMatch ? targetKey.replace(forMatch, '') : targetKey;
 };
 
 export const addParentConnectionForRepeatingElementsNested = (
@@ -240,4 +335,14 @@ export const addParentConnectionForRepeatingElementsNested = (
       );
     }
   }
+};
+
+export const flattenMapDefinitionValues = (node: MapDefinitionEntry): string[] => {
+  return Object.values(node).flatMap((nodeValue) => {
+    if (typeof nodeValue === 'string') {
+      return [nodeValue];
+    } else {
+      return flattenMapDefinitionValues(nodeValue);
+    }
+  });
 };

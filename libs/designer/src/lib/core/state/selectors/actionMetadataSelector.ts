@@ -85,7 +85,6 @@ export const useOperationQuery = (nodeId: string) => {
 
   const operationManifestService = OperationManifestService();
   const useManifest = operationManifestService.isSupported(operationInfo?.type ?? '', operationInfo?.kind ?? '');
-
   return useManifest ? manifestQuery : connectorQuery;
 };
 

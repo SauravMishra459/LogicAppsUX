@@ -1,4 +1,10 @@
 {
+  "+0yxlR": [
+    {
+      "type": 0,
+      "value": "Function display"
+    }
+  ],
   "+20fdv": [
     {
       "type": 0,
@@ -31,6 +37,12 @@
     {
       "type": 0,
       "value": "Failed loading the schema. Please try again."
+    }
+  ],
+  "+JCU+Y": [
+    {
+      "type": 0,
+      "value": "Select this if you are configuring an on-prem connection"
     }
   ],
   "+W9fkq": [
@@ -67,12 +79,6 @@
     {
       "type": 0,
       "value": "Paginación"
-    }
-  ],
-  "/9r9ML": [
-    {
-      "type": 0,
-      "value": "Add target schema"
     }
   ],
   "/AtN16": [
@@ -285,6 +291,16 @@
       "value": "Obligatorio. La cadena que debería contener el valor."
     }
   ],
+  "0qcKzG": [
+    {
+      "type": 1,
+      "value": "parameterName"
+    },
+    {
+      "type": 0,
+      "value": " is no longer present in the operation schema. It should be removed before the workflow is re-saved."
+    }
+  ],
   "0uj1Li": [
     {
       "type": 0,
@@ -424,6 +440,12 @@
     {
       "type": 0,
       "value": "Especifique una o varias expresiones que deben ser \"true\" para que se active el desencadenador."
+    }
+  ],
+  "1YEc9e": [
+    {
+      "type": 0,
+      "value": "Enter a valid condition."
     }
   ],
   "1ZDLZA": [
@@ -858,6 +880,16 @@
       "value": "Botón para agregar contenido dinámico si TokenPicker está oculto"
     }
   ],
+  "4sYR0J": [
+    {
+      "type": 1,
+      "value": "parameterName"
+    },
+    {
+      "type": 0,
+      "value": " is required."
+    }
+  ],
   "4vcnOA": [
     {
       "type": 0,
@@ -976,12 +1008,6 @@
     {
       "type": 0,
       "value": "(UTC+09:30) Adelaida"
-    }
-  ],
-  "6grB5C": [
-    {
-      "type": 0,
-      "value": "Invalid node settings"
     }
   ],
   "6jiO7t": [
@@ -1362,6 +1388,12 @@
     {
       "type": 0,
       "value": "Devuelve true si ambos parámetros son verdaderos."
+    }
+  ],
+  "9x8hg8": [
+    {
+      "type": 0,
+      "value": "Edit in basic mode"
     }
   ],
   "A5Ferh": [
@@ -2022,6 +2054,18 @@
       "value": "Devuelve la consulta de un URI."
     }
   ],
+  "GCjJnP": [
+    {
+      "type": 0,
+      "value": "Enter a valid Json."
+    }
+  ],
+  "GD3m4X": [
+    {
+      "type": 0,
+      "value": "Expanded"
+    }
+  ],
   "GDUGlm": [
     {
       "type": 0,
@@ -2086,6 +2130,12 @@
     {
       "type": 0,
       "value": "Cancelar la selección"
+    }
+  ],
+  "GyUe4C": [
+    {
+      "type": 0,
+      "value": "Modify options regarding functions"
     }
   ],
   "GzQQqH": [
@@ -2166,6 +2216,20 @@
     {
       "type": 0,
       "value": "Enter a valid datetime."
+    }
+  ],
+  "Hs5+Mk": [
+    {
+      "type": 0,
+      "value": "Enter a valid value for "
+    },
+    {
+      "type": 1,
+      "value": "parameterName"
+    },
+    {
+      "type": 0,
+      "value": "."
     }
   ],
   "HsO1Rd": [
@@ -2336,6 +2400,12 @@
     {
       "type": 0,
       "value": "Devuelve true si un diccionario contiene una clave, una matriz contiene un valor o una cadena contiene una subcadena."
+    }
+  ],
+  "Jil/Wa": [
+    {
+      "type": 0,
+      "value": "Invalid settings"
     }
   ],
   "JjTfC7": [
@@ -2689,6 +2759,12 @@
     {
       "type": 0,
       "value": "Siguiente con error"
+    }
+  ],
+  "MfAdfx": [
+    {
+      "type": 0,
+      "value": "Edit in advanced mode"
     }
   ],
   "Mgcs5s": [
@@ -3225,12 +3301,6 @@
       "value": "Permite cambiar a la matriz de entrada completa."
     }
   ],
-  "RZO5Ic": [
-    {
-      "type": 0,
-      "value": "Add or replace your schemas."
-    }
-  ],
   "RhH4pF": [
     {
       "offset": 0,
@@ -3446,6 +3516,12 @@
       "value": "Crear una conexión nueva"
     }
   ],
+  "TY4HzZ": [
+    {
+      "type": 0,
+      "value": "Add or replace your schemas."
+    }
+  ],
   "TZv5JE": [
     {
       "type": 0,
@@ -3474,6 +3550,12 @@
     {
       "type": 0,
       "value": "Personalizado"
+    }
+  ],
+  "Tmr/9e": [
+    {
+      "type": 0,
+      "value": "Invalid parameters"
     }
   ],
   "ToPmjE": [
@@ -3754,6 +3836,12 @@
     {
       "type": 0,
       "value": "Forma abreviada de trigger().outputs"
+    }
+  ],
+  "WcnIF8": [
+    {
+      "type": 0,
+      "value": "Remove"
     }
   ],
   "WgoP7R": [
@@ -4640,12 +4728,6 @@
       "value": "Funciones lógicas"
     }
   ],
-  "fqNVDv": [
-    {
-      "type": 0,
-      "value": "Back"
-    }
-  ],
   "froV/0": [
     {
       "type": 0,
@@ -5347,6 +5429,12 @@
       "value": "A line for the parent element is added automatically."
     }
   ],
+  "lR7V87": [
+    {
+      "type": 0,
+      "value": "Functions"
+    }
+  ],
   "lV77P8": [
     {
       "type": 0,
@@ -6016,6 +6104,12 @@
       "value": "Int."
     }
   ],
+  "rAwCdh": [
+    {
+      "type": 0,
+      "value": "Connect via on-premises data gateway"
+    }
+  ],
   "rAyuzv": [
     {
       "type": 0,
@@ -6166,6 +6260,12 @@
       "value": "Parámetro nuevo"
     }
   ],
+  "sv+IcU": [
+    {
+      "type": 0,
+      "value": "Unable to generate data map definition"
+    }
+  ],
   "syiNc+": [
     {
       "type": 0,
@@ -6182,6 +6282,12 @@
     {
       "type": 0,
       "value": "Obligatorio. Cadena que contiene el nombre de la zona horaria de destino. Para obtener más detalles, consulte https://msdn.microsoft.com/en-us/library/gg154758.aspx."
+    }
+  ],
+  "tAeKNh": [
+    {
+      "type": 0,
+      "value": "Simple"
     }
   ],
   "tE7Zam": [
@@ -6618,12 +6724,6 @@
       "value": "URL de devolución de llamadas:"
     }
   ],
-  "woq0x0": [
-    {
-      "type": 0,
-      "value": "Add source schema"
-    }
-  ],
   "wzEneQ": [
     {
       "type": 0,
@@ -6646,6 +6746,12 @@
     {
       "type": 0,
       "value": "Status Code"
+    }
+  ],
+  "xC1zg3": [
+    {
+      "type": 0,
+      "value": "Schemas"
     }
   ],
   "xFQXAI": [
@@ -6688,6 +6794,12 @@
     {
       "type": 0,
       "value": "Obligatorio. Nombre de la propiedad nueva o existente."
+    }
+  ],
+  "xV4Koe": [
+    {
+      "type": 0,
+      "value": "Code"
     }
   ],
   "xYyPR8": [
@@ -6868,6 +6980,12 @@
     {
       "type": 0,
       "value": "(UTC+03:00) Nairobi"
+    }
+  ],
+  "ziXw25": [
+    {
+      "type": 0,
+      "value": "Delete"
     }
   ],
   "ziYCiA": [

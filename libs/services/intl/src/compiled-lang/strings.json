@@ -1,4 +1,10 @@
 {
+  "+0yxlR": [
+    {
+      "type": 0,
+      "value": "Function display"
+    }
+  ],
   "+20fdv": [
     {
       "type": 0,
@@ -15,6 +21,12 @@
     {
       "type": 0,
       "value": "Failed loading the schema. Please try again."
+    }
+  ],
+  "+JCU+Y": [
+    {
+      "type": 0,
+      "value": "Select this if you are configuring an on-prem connection"
     }
   ],
   "+W9fkq": [
@@ -51,12 +63,6 @@
     {
       "type": 0,
       "value": "Pagination"
-    }
-  ],
-  "/9r9ML": [
-    {
-      "type": 0,
-      "value": "Add target schema"
     }
   ],
   "/AtN16": [
@@ -269,6 +275,16 @@
       "value": "Required. The string that may contain the value."
     }
   ],
+  "0qcKzG": [
+    {
+      "type": 1,
+      "value": "parameterName"
+    },
+    {
+      "type": 0,
+      "value": " is no longer present in the operation schema. It should be removed before the workflow is re-saved."
+    }
+  ],
   "0uj1Li": [
     {
       "type": 0,
@@ -397,6 +413,12 @@
     {
       "type": 0,
       "value": "Specify one or more expressions which must be true for the trigger to fire."
+    }
+  ],
+  "1YEc9e": [
+    {
+      "type": 0,
+      "value": "Enter a valid condition."
     }
   ],
   "1ZDLZA": [
@@ -831,6 +853,16 @@
       "value": "Button to add dynamic content if TokenPicker is hidden"
     }
   ],
+  "4sYR0J": [
+    {
+      "type": 1,
+      "value": "parameterName"
+    },
+    {
+      "type": 0,
+      "value": " is required."
+    }
+  ],
   "4vcnOA": [
     {
       "type": 0,
@@ -949,12 +981,6 @@
     {
       "type": 0,
       "value": "(UTC+09:30) Adelaide"
-    }
-  ],
-  "6grB5C": [
-    {
-      "type": 0,
-      "value": "Invalid node settings"
     }
   ],
   "6jiO7t": [
@@ -1319,6 +1345,12 @@
     {
       "type": 0,
       "value": "Returns true if both parameters are true"
+    }
+  ],
+  "9x8hg8": [
+    {
+      "type": 0,
+      "value": "Edit in basic mode"
     }
   ],
   "A5Ferh": [
@@ -1941,6 +1973,18 @@
       "value": "Returns the query from a URI"
     }
   ],
+  "GCjJnP": [
+    {
+      "type": 0,
+      "value": "Enter a valid Json."
+    }
+  ],
+  "GD3m4X": [
+    {
+      "type": 0,
+      "value": "Expanded"
+    }
+  ],
   "GDUGlm": [
     {
       "type": 0,
@@ -2005,6 +2049,12 @@
     {
       "type": 0,
       "value": "Cancel the selection"
+    }
+  ],
+  "GyUe4C": [
+    {
+      "type": 0,
+      "value": "Modify options regarding functions"
     }
   ],
   "GzQQqH": [
@@ -2077,6 +2127,20 @@
     {
       "type": 0,
       "value": "Enter a valid datetime."
+    }
+  ],
+  "Hs5+Mk": [
+    {
+      "type": 0,
+      "value": "Enter a valid value for "
+    },
+    {
+      "type": 1,
+      "value": "parameterName"
+    },
+    {
+      "type": 0,
+      "value": "."
     }
   ],
   "HsO1Rd": [
@@ -2247,6 +2311,12 @@
     {
       "type": 0,
       "value": "Returns true if a dictionary contains a key, if an array contains a value, or if a string contains a substring"
+    }
+  ],
+  "Jil/Wa": [
+    {
+      "type": 0,
+      "value": "Invalid settings"
     }
   ],
   "JjTfC7": [
@@ -2573,6 +2643,12 @@
     {
       "type": 0,
       "value": "Next failed"
+    }
+  ],
+  "MfAdfx": [
+    {
+      "type": 0,
+      "value": "Edit in advanced mode"
     }
   ],
   "Mgcs5s": [
@@ -3097,12 +3173,6 @@
       "value": "Switch to input entire array"
     }
   ],
-  "RZO5Ic": [
-    {
-      "type": 0,
-      "value": "Add or replace your schemas."
-    }
-  ],
   "RhH4pF": [
     {
       "offset": 0,
@@ -3307,6 +3377,12 @@
       "value": "Create a new connection"
     }
   ],
+  "TY4HzZ": [
+    {
+      "type": 0,
+      "value": "Add or replace your schemas."
+    }
+  ],
   "TZv5JE": [
     {
       "type": 0,
@@ -3335,6 +3411,12 @@
     {
       "type": 0,
       "value": "Custom"
+    }
+  ],
+  "Tmr/9e": [
+    {
+      "type": 0,
+      "value": "Invalid parameters"
     }
   ],
   "ToPmjE": [
@@ -3615,6 +3697,12 @@
     {
       "type": 0,
       "value": "Shorthand for trigger().outputs"
+    }
+  ],
+  "WcnIF8": [
+    {
+      "type": 0,
+      "value": "Remove"
     }
   ],
   "WgoP7R": [
@@ -4493,12 +4581,6 @@
       "value": "Logical functions"
     }
   ],
-  "fqNVDv": [
-    {
-      "type": 0,
-      "value": "Back"
-    }
-  ],
   "froV/0": [
     {
       "type": 0,
@@ -5165,6 +5247,12 @@
       "value": "A line for the parent element is added automatically."
     }
   ],
+  "lR7V87": [
+    {
+      "type": 0,
+      "value": "Functions"
+    }
+  ],
   "lV77P8": [
     {
       "type": 0,
@@ -5807,6 +5895,12 @@
       "value": "Int"
     }
   ],
+  "rAwCdh": [
+    {
+      "type": 0,
+      "value": "Connect via on-premises data gateway"
+    }
+  ],
   "rAyuzv": [
     {
       "type": 0,
@@ -5957,6 +6051,12 @@
       "value": "New parameter"
     }
   ],
+  "sv+IcU": [
+    {
+      "type": 0,
+      "value": "Unable to generate data map definition"
+    }
+  ],
   "syiNc+": [
     {
       "type": 0,
@@ -5973,6 +6073,12 @@
     {
       "type": 0,
       "value": "Required. A string that contains the time zone name of the destination time zone. See https://msdn.microsoft.com/en-us/library/gg154758.aspx for details."
+    }
+  ],
+  "tAeKNh": [
+    {
+      "type": 0,
+      "value": "Simple"
     }
   ],
   "tE7Zam": [
@@ -6409,12 +6515,6 @@
       "value": "Callback URL:"
     }
   ],
-  "woq0x0": [
-    {
-      "type": 0,
-      "value": "Add source schema"
-    }
-  ],
   "wzEneQ": [
     {
       "type": 0,
@@ -6437,6 +6537,12 @@
     {
       "type": 0,
       "value": "Status Code"
+    }
+  ],
+  "xC1zg3": [
+    {
+      "type": 0,
+      "value": "Schemas"
     }
   ],
   "xFQXAI": [
@@ -6479,6 +6585,12 @@
     {
       "type": 0,
       "value": "Required. The name of the new or existing property."
+    }
+  ],
+  "xV4Koe": [
+    {
+      "type": 0,
+      "value": "Code"
     }
   ],
   "xYyPR8": [
@@ -6659,6 +6771,12 @@
     {
       "type": 0,
       "value": "(UTC+03:00) Nairobi"
+    }
+  ],
+  "ziXw25": [
+    {
+      "type": 0,
+      "value": "Delete"
     }
   ],
   "ziYCiA": [

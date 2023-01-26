@@ -10,6 +10,7 @@ import type { CallbackHandler, ChangeHandler, TokenPickerHandler } from '../../e
 import { EditorLanguage } from '../../editor/monaco';
 import { StringEditor } from '../../editor/string';
 import { QueryBuilderEditor } from '../../querybuilder';
+import { UntilEditor } from '../../querybuilder/Until';
 import { SchemaEditor } from '../../schemaeditor';
 import { TableEditor } from '../../table';
 import type { TokenGroup } from '../../tokenpicker/models/token';
@@ -38,6 +39,7 @@ export interface SettingTokenFieldProps extends SettingProps {
   onValueChange?: ChangeHandler;
   onComboboxMenuOpen?: CallbackHandler;
   tokenPickerHandler: TokenPickerHandler;
+  validationErrors?: string[];
 }
 
 export const SettingTokenField: React.FC<SettingTokenFieldProps> = (props) => {
@@ -69,6 +71,8 @@ const TokenField = ({
   onComboboxMenuOpen,
   tokenPickerHandler,
 }: SettingTokenFieldProps) => {
+  const dropdownOptions = editorOptions?.options?.value ?? editorOptions?.options ?? [];
+
   switch (editor?.toLowerCase()) {
     case 'copyable':
       return <CopyInputControl placeholder={placeholder} text={value[0].value} />;
@@ -78,7 +82,7 @@ const TokenField = ({
         <DropdownEditor
           readonly={readOnly}
           initialValue={value}
-          options={editorOptions.options.map((option: any, index: number) => ({ key: index.toString(), ...option }))}
+          options={dropdownOptions.map((option: any, index: number) => ({ key: index.toString(), ...option }))}
           multiSelect={!!editorOptions?.multiSelect}
           onChange={onValueChange}
         />
@@ -102,7 +106,7 @@ const TokenField = ({
           placeholder={placeholder}
           readonly={readOnly}
           initialValue={value}
-          options={editorOptions.options.map((option: any, index: number) => ({ key: index.toString(), ...option }))}
+          options={dropdownOptions.map((option: any, index: number) => ({ key: index.toString(), ...option }))}
           useOption={true}
           isTrigger={isTrigger}
           isLoading={isLoading}
@@ -174,8 +178,16 @@ const TokenField = ({
       );
 
     case 'condition':
-      return (
+      return editorViewModel.isOldFormat ? (
+        <UntilEditor
+          readonly={readOnly}
+          items={JSON.parse(JSON.stringify(editorViewModel.items))}
+          tokenPickerHandler={tokenPickerHandler}
+          onChange={onValueChange}
+        />
+      ) : (
         <QueryBuilderEditor
+          readonly={readOnly}
           groupProps={JSON.parse(JSON.stringify(editorViewModel.items))}
           onChange={onValueChange}
           tokenPickerHandler={tokenPickerHandler}

@@ -1,4 +1,10 @@
 {
+  "+0yxlR": [
+    {
+      "type": 0,
+      "value": "Function display"
+    }
+  ],
   "+20fdv": [
     {
       "type": 0,
@@ -15,6 +21,12 @@
     {
       "type": 0,
       "value": "Failed loading the schema. Please try again."
+    }
+  ],
+  "+JCU+Y": [
+    {
+      "type": 0,
+      "value": "Select this if you are configuring an on-prem connection"
     }
   ],
   "+W9fkq": [
@@ -51,12 +63,6 @@
     {
       "type": 0,
       "value": "分頁"
-    }
-  ],
-  "/9r9ML": [
-    {
-      "type": 0,
-      "value": "Add target schema"
     }
   ],
   "/AtN16": [
@@ -269,6 +275,16 @@
       "value": "必要。包含值的字串。"
     }
   ],
+  "0qcKzG": [
+    {
+      "type": 1,
+      "value": "parameterName"
+    },
+    {
+      "type": 0,
+      "value": " is no longer present in the operation schema. It should be removed before the workflow is re-saved."
+    }
+  ],
   "0uj1Li": [
     {
       "type": 0,
@@ -386,6 +402,12 @@
     {
       "type": 0,
       "value": "指定一或多個必須為 true 的運算式，才可引發觸發程序。"
+    }
+  ],
+  "1YEc9e": [
+    {
+      "type": 0,
+      "value": "Enter a valid condition."
     }
   ],
   "1ZDLZA": [
@@ -820,6 +842,16 @@
       "value": "當 TokenPicker 隱藏時新增動態內容的按鈕"
     }
   ],
+  "4sYR0J": [
+    {
+      "type": 1,
+      "value": "parameterName"
+    },
+    {
+      "type": 0,
+      "value": " is required."
+    }
+  ],
   "4vcnOA": [
     {
       "type": 0,
@@ -938,12 +970,6 @@
     {
       "type": 0,
       "value": "(UTC+09:30) 阿得雷德"
-    }
-  ],
-  "6grB5C": [
-    {
-      "type": 0,
-      "value": "Invalid node settings"
     }
   ],
   "6jiO7t": [
@@ -1308,6 +1334,12 @@
     {
       "type": 0,
       "value": "若兩個參數皆為 True，則傳回 True"
+    }
+  ],
+  "9x8hg8": [
+    {
+      "type": 0,
+      "value": "Edit in basic mode"
     }
   ],
   "A5Ferh": [
@@ -1908,6 +1940,18 @@
       "value": "傳回 URI 的查詢"
     }
   ],
+  "GCjJnP": [
+    {
+      "type": 0,
+      "value": "Enter a valid Json."
+    }
+  ],
+  "GD3m4X": [
+    {
+      "type": 0,
+      "value": "Expanded"
+    }
+  ],
   "GDUGlm": [
     {
       "type": 0,
@@ -1972,6 +2016,12 @@
     {
       "type": 0,
       "value": "取消選取項目"
+    }
+  ],
+  "GyUe4C": [
+    {
+      "type": 0,
+      "value": "Modify options regarding functions"
     }
   ],
   "GzQQqH": [
@@ -2044,6 +2094,20 @@
     {
       "type": 0,
       "value": "Enter a valid datetime."
+    }
+  ],
+  "Hs5+Mk": [
+    {
+      "type": 0,
+      "value": "Enter a valid value for "
+    },
+    {
+      "type": 1,
+      "value": "parameterName"
+    },
+    {
+      "type": 0,
+      "value": "."
     }
   ],
   "HsO1Rd": [
@@ -2214,6 +2278,12 @@
     {
       "type": 0,
       "value": "若字典包含索引鍵、若陣列包含值或若字串包含子字串，則傳回 True"
+    }
+  ],
+  "Jil/Wa": [
+    {
+      "type": 0,
+      "value": "Invalid settings"
     }
   ],
   "JjTfC7": [
@@ -2529,6 +2599,12 @@
     {
       "type": 0,
       "value": "下一個失敗"
+    }
+  ],
+  "MfAdfx": [
+    {
+      "type": 0,
+      "value": "Edit in advanced mode"
     }
   ],
   "Mgcs5s": [
@@ -3049,12 +3125,6 @@
       "value": "切換為輸入整個陣列"
     }
   ],
-  "RZO5Ic": [
-    {
-      "type": 0,
-      "value": "Add or replace your schemas."
-    }
-  ],
   "RhH4pF": [
     {
       "offset": 0,
@@ -3248,6 +3318,12 @@
       "value": "建立新的連線"
     }
   ],
+  "TY4HzZ": [
+    {
+      "type": 0,
+      "value": "Add or replace your schemas."
+    }
+  ],
   "TZv5JE": [
     {
       "type": 0,
@@ -3276,6 +3352,12 @@
     {
       "type": 0,
       "value": "自訂"
+    }
+  ],
+  "Tmr/9e": [
+    {
+      "type": 0,
+      "value": "Invalid parameters"
     }
   ],
   "ToPmjE": [
@@ -3556,6 +3638,12 @@
     {
       "type": 0,
       "value": "trigger().outputs 的速記"
+    }
+  ],
+  "WcnIF8": [
+    {
+      "type": 0,
+      "value": "Remove"
     }
   ],
   "WgoP7R": [
@@ -4438,12 +4526,6 @@
       "value": "邏輯函數"
     }
   ],
-  "fqNVDv": [
-    {
-      "type": 0,
-      "value": "Back"
-    }
-  ],
   "froV/0": [
     {
       "type": 0,
@@ -5099,6 +5181,12 @@
       "value": "A line for the parent element is added automatically."
     }
   ],
+  "lR7V87": [
+    {
+      "type": 0,
+      "value": "Functions"
+    }
+  ],
   "lV77P8": [
     {
       "type": 0,
@@ -5730,6 +5818,12 @@
       "value": "整數"
     }
   ],
+  "rAwCdh": [
+    {
+      "type": 0,
+      "value": "Connect via on-premises data gateway"
+    }
+  ],
   "rAyuzv": [
     {
       "type": 0,
@@ -5880,6 +5974,12 @@
       "value": "新增參數"
     }
   ],
+  "sv+IcU": [
+    {
+      "type": 0,
+      "value": "Unable to generate data map definition"
+    }
+  ],
   "syiNc+": [
     {
       "type": 0,
@@ -5896,6 +5996,12 @@
     {
       "type": 0,
       "value": "必要。包含目的地時區之時區名稱的字串。如需詳細資料，請參閱 https://msdn.microsoft.com/en-us/library/gg154758.aspx。"
+    }
+  ],
+  "tAeKNh": [
+    {
+      "type": 0,
+      "value": "Simple"
     }
   ],
   "tE7Zam": [
@@ -6332,12 +6438,6 @@
       "value": "回呼 URL:"
     }
   ],
-  "woq0x0": [
-    {
-      "type": 0,
-      "value": "Add source schema"
-    }
-  ],
   "wzEneQ": [
     {
       "type": 0,
@@ -6360,6 +6460,12 @@
     {
       "type": 0,
       "value": "Status Code"
+    }
+  ],
+  "xC1zg3": [
+    {
+      "type": 0,
+      "value": "Schemas"
     }
   ],
   "xFQXAI": [
@@ -6402,6 +6508,12 @@
     {
       "type": 0,
       "value": "必要。新屬性或現有屬性的名稱。"
+    }
+  ],
+  "xV4Koe": [
+    {
+      "type": 0,
+      "value": "Code"
     }
   ],
   "xYyPR8": [
@@ -6582,6 +6694,12 @@
     {
       "type": 0,
       "value": "(UTC+03:00) 奈洛比"
+    }
+  ],
+  "ziXw25": [
+    {
+      "type": 0,
+      "value": "Delete"
     }
   ],
   "ziYCiA": [

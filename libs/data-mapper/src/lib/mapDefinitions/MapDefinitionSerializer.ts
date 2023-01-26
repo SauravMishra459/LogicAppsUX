@@ -1,11 +1,11 @@
 /* eslint-disable no-param-reassign */
 import { mapDefinitionVersion, mapNodeParams, reservedMapDefinitionKeys } from '../constants/MapDefinitionConstants';
-import { targetPrefix } from '../constants/ReactFlowConstants';
+import { sourcePrefix, targetPrefix } from '../constants/ReactFlowConstants';
 import type { Connection, ConnectionDictionary, InputConnection } from '../models/Connection';
 import { directAccessPseudoFunctionKey, ifPseudoFunctionKey, indexPseudoFunctionKey } from '../models/Function';
 import type { MapDefinitionEntry } from '../models/MapDefinition';
 import type { PathItem, SchemaExtended, SchemaNodeExtended } from '../models/Schema';
-import { SchemaNodeProperty } from '../models/Schema';
+import { NormalizedDataType, SchemaNodeProperty } from '../models/Schema';
 import { findLast } from '../utils/Array.Utils';
 import { collectTargetNodesForConnectionChain, flattenInputs, isConnectionUnit, isCustomValue } from '../utils/Connection.Utils';
 import { collectConditionalValues, collectFunctionValue, getInputValues, isValidToMakeMapDefinition } from '../utils/DataMap.Utils';
@@ -23,25 +23,27 @@ interface OutputPathItem {
 export const convertToMapDefinition = (
   connections: ConnectionDictionary,
   sourceSchema: SchemaExtended | undefined,
-  targetSchema: SchemaExtended | undefined
+  targetSchema: SchemaExtended | undefined,
+  generateHeader = true
 ): string => {
   if (sourceSchema && targetSchema && isValidToMakeMapDefinition(connections)) {
     const mapDefinition: MapDefinitionEntry = {};
 
-    generateMapDefinitionHeader(mapDefinition, sourceSchema, targetSchema);
+    if (generateHeader) {
+      generateMapDefinitionHeader(mapDefinition, sourceSchema, targetSchema);
+    }
+
     generateMapDefinitionBody(mapDefinition, connections);
 
-    return yaml.dump(mapDefinition, { quotingType: '"', replacer: yamlReplacer }).replaceAll('\\"', '');
+    return yaml.dump(mapDefinition, { replacer: yamlReplacer });
   }
 
   return '';
 };
 
 const yamlReplacer = (key: string, value: any) => {
-  if (typeof value === 'string') {
-    if (key === reservedMapDefinitionKeys.version) {
-      return parseFloat(value);
-    }
+  if (typeof value === 'string' && key === reservedMapDefinitionKeys.version) {
+    return parseFloat(value);
   }
 
   return value;
@@ -79,6 +81,7 @@ export const generateMapDefinitionBody = (mapDefinition: MapDefinitionEntry, con
       return false;
     }
   });
+
   targetSchemaConnections.forEach(([_key, connection]) => {
     const flattenedInputs = flattenInputs(connection.inputs);
     flattenedInputs.forEach((input) => {
@@ -117,7 +120,7 @@ const createNewPathItems = (input: InputConnection, targetNode: SchemaNodeExtend
         // Still have objects to traverse down
         newPath.push({ key: pathItem.fullName.startsWith('@') ? `$${pathItem.fullName}` : pathItem.fullName });
       } else {
-        // Add the actual connection value now that we're at the correct spot
+        // Handle custom values, source schema nodes, or Functions applied to the current target schema node
         let value = '';
         if (input) {
           if (isCustomValue(input)) {
@@ -176,7 +179,7 @@ const createNewPathItems = (input: InputConnection, targetNode: SchemaNodeExtend
           // Standard property to value
           newPath.push({
             key: isObjectValue ? mapNodeParams.value : pathItem.fullName.startsWith('@') ? `$${pathItem.fullName}` : pathItem.fullName,
-            value: value ? value : undefined,
+            value: value && targetNode.normalizedDataType !== NormalizedDataType.ComplexType ? value : undefined,
           });
         }
       }
@@ -240,8 +243,10 @@ const addLoopingToNewPathItems = (
     return 0;
   });
 
+  let prevPathItemWasConditional = false;
   rootSourceNodes.forEach((sourceNode) => {
     let loopValue = '';
+
     if (sourceNode && isConnectionUnit(sourceNode)) {
       if (isFunctionData(sourceNode.node)) {
         if (sourceNode.node.key === ifPseudoFunctionKey) {
@@ -260,48 +265,57 @@ const addLoopingToNewPathItems = (
 
             loopValue = `${mapNodeParams.for}(${inputKey}, ${getIndexValueForCurrentConnection(indexConnection)})`;
           } else {
-            loopValue = `${mapNodeParams.for}(${loopValue})`;
+            loopValue = `${mapNodeParams.for}(${sourceSchemaNodeReactFlowKey.replace(sourcePrefix, '')})`;
           }
 
           // For entry
           newPath.push({ key: loopValue });
 
           addConditionalToNewPathItems(connections[sourceNode.reactFlowKey], connections, newPath);
+          prevPathItemWasConditional = true;
         } else {
           // Loop with an index
-          const indexFunctionKey = sourceNode.reactFlowKey;
-          const sourceSchemaNodeConnection = connections[indexFunctionKey].inputs[0][0];
-          const sourceSchemaNode = isConnectionUnit(sourceSchemaNodeConnection) && sourceSchemaNodeConnection.node;
-          const indexFunctionInput = connections[indexFunctionKey];
+          if (!prevPathItemWasConditional) {
+            const indexFunctionKey = sourceNode.reactFlowKey;
+            const sourceSchemaNodeConnection = connections[indexFunctionKey].inputs[0][0];
+            const sourceSchemaNode = isConnectionUnit(sourceSchemaNodeConnection) && sourceSchemaNodeConnection.node;
+            const indexFunctionInput = connections[indexFunctionKey];
 
-          if (sourceSchemaNode && isSchemaNodeExtended(sourceSchemaNode)) {
-            const valueToTrim = findLast(
-              sourceSchemaNode.pathToRoot,
-              (pathItem) => pathItem.repeating && pathItem.key !== sourceSchemaNode.key
-            )?.key;
-            loopValue = sourceSchemaNode.key.replace(`${valueToTrim}/`, '');
-            loopValue = `${mapNodeParams.for}(${loopValue}, ${getIndexValueForCurrentConnection(indexFunctionInput)})`;
-          } else {
-            LogService.error(LogCategory.DataMapUtils, 'addLoopingToNewPathItems', {
-              message: `Failed to generate proper loopValue: ${loopValue}`,
-            });
+            if (sourceSchemaNode && isSchemaNodeExtended(sourceSchemaNode)) {
+              const valueToTrim = findLast(
+                sourceSchemaNode.pathToRoot,
+                (pathItem) => pathItem.repeating && pathItem.key !== sourceSchemaNode.key
+              )?.key;
+              loopValue = sourceSchemaNode.key.replace(`${valueToTrim}/`, '');
+              loopValue = `${mapNodeParams.for}(${loopValue}, ${getIndexValueForCurrentConnection(indexFunctionInput)})`;
+            } else {
+              LogService.error(LogCategory.DataMapUtils, 'addLoopingToNewPathItems', {
+                message: `Failed to generate proper loopValue: ${loopValue}`,
+              });
+            }
+
+            // For entry
+            newPath.push({ key: loopValue });
           }
+
+          prevPathItemWasConditional = false;
+        }
+      } else {
+        // Normal loop
+        if (!prevPathItemWasConditional) {
+          loopValue = sourceNode.node.key;
+          const valueToTrim = findLast(sourceNode.node.pathToRoot, (pathItem) => pathItem.repeating && pathItem.key !== loopValue)?.key;
+          if (valueToTrim) {
+            loopValue = loopValue.replace(`${valueToTrim}/`, '');
+          }
+
+          loopValue = `${mapNodeParams.for}(${loopValue})`;
 
           // For entry
           newPath.push({ key: loopValue });
         }
-      } else {
-        // Normal loop
-        loopValue = sourceNode.node.key;
-        const valueToTrim = findLast(sourceNode.node.pathToRoot, (pathItem) => pathItem.repeating && pathItem.key !== loopValue)?.key;
-        if (valueToTrim) {
-          loopValue = loopValue.replace(`${valueToTrim}/`, '');
-        }
 
-        loopValue = `${mapNodeParams.for}(${loopValue})`;
-
-        // For entry
-        newPath.push({ key: loopValue });
+        prevPathItemWasConditional = false;
       }
     }
   });

@@ -1,13 +1,13 @@
 import { childTargetNodeCardWidth, schemaNodeCardHeight, schemaNodeCardWidth } from '../../constants/NodeConstants';
 import { ReactFlowNodeType } from '../../constants/ReactFlowConstants';
-import { setCurrentTargetSchemaNode } from '../../core/state/DataMapSlice';
+import { removeSourceSchemaNodes, setCurrentTargetSchemaNode } from '../../core/state/DataMapSlice';
 import type { AppDispatch, RootState } from '../../core/state/Store';
 import type { SchemaNodeExtended } from '../../models';
 import { SchemaNodeProperty, SchemaType } from '../../models';
 import type { Connection } from '../../models/Connection';
 import { isTextUsingEllipsis } from '../../utils/Browser.Utils';
 import { flattenInputs, isCustomValue, isValidConnectionByType, isValidCustomValueByType } from '../../utils/Connection.Utils';
-import { iconForSchemaNodeDataType } from '../../utils/Icon.Utils';
+import { iconForNormalizedDataType } from '../../utils/Icon.Utils';
 import { isSchemaNodeExtended } from '../../utils/Schema.Utils';
 import { ItemToggledState } from '../tree/TargetSchemaTreeItem';
 import HandleWrapper from './HandleWrapper';
@@ -33,6 +33,8 @@ import {
   CircleHalfFill12Regular,
   Circle12Regular,
 } from '@fluentui/react-icons';
+import type { MenuItemOption } from '@microsoft/designer-ui';
+import { MenuItemType, useCardContextMenu, CardContextMenu } from '@microsoft/designer-ui';
 import { useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useDispatch, useSelector } from 'react-redux';
@@ -168,6 +170,7 @@ export const SchemaCard = (props: NodeProps<SchemaCardProps>) => {
   const dispatch = useDispatch<AppDispatch>();
   const sharedStyles = getStylesForSharedState();
   const classes = useStyles();
+  const intl = useIntl();
 
   const selectedItemKey = useSelector((state: RootState) => state.dataMap.curDataMapOperation.selectedItemKey);
   const sourceNodeConnectionBeingDrawnFromId = useSelector((state: RootState) => state.dataMap.sourceNodeConnectionBeingDrawnFromId);
@@ -259,13 +262,34 @@ export const SchemaCard = (props: NodeProps<SchemaCardProps>) => {
 
   const ExclamationIcon = bundleIcon(Important12Filled, Important12Filled);
   const ChevronIcon = bundleIcon(ChevronRight16Filled, ChevronRight16Regular);
-  const BundledTypeIcon = iconForSchemaNodeDataType(schemaNode.schemaNodeDataType, 24, false, schemaNode.nodeProperties);
+  const BundledTypeIcon = iconForNormalizedDataType(schemaNode.normalizedDataType, 24, false, schemaNode.nodeProperties);
+  const contextMenu = useCardContextMenu();
+  const getRemoveMenuItem = (): MenuItemOption => {
+    const deleteNode = intl.formatMessage({
+      defaultMessage: 'Remove',
+      description: 'Remove card from canvas',
+    });
+
+    return {
+      key: deleteNode,
+      disabled: !isSourceSchemaNode,
+      iconName: 'Delete',
+      title: deleteNode,
+      type: MenuItemType.Advanced,
+      onClick: handleDeleteClick,
+    };
+  };
+
+  const handleDeleteClick = () => {
+    dispatch(removeSourceSchemaNodes([schemaNode]));
+  };
 
   return (
     <div className={classes.badgeContainer}>
       {isNBadgeRequired && !isSourceSchemaNode && <NBadge isOutput />}
 
       <div
+        onContextMenu={contextMenu.handle}
         className={containerStyle}
         style={isCurrentNodeSelected || sourceNodeConnectionBeingDrawnFromId === reactFlowId ? selectedCardStyles : undefined}
         onMouseLeave={() => setIsCardHovered(false)}
@@ -310,6 +334,16 @@ export const SchemaCard = (props: NodeProps<SchemaCardProps>) => {
             onMouseLeave={() => setIsChevronHovered(false)}
           />
         )}
+        {
+          // danielle maybe show blank menu for target node? Kinda odd that the regular right-click loads
+          <CardContextMenu
+            title={'remove'}
+            contextMenuLocation={contextMenu.location}
+            contextMenuOptions={[getRemoveMenuItem()]}
+            showContextMenu={contextMenu.isShowing}
+            onSetShowContextMenu={contextMenu.setIsShowing}
+          />
+        }
       </div>
 
       {isNBadgeRequired && isSourceSchemaNode && <NBadge />}

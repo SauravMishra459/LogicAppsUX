@@ -16,12 +16,18 @@ export const settingsFileName = 'settings.json';
 export const extensionsFileName = 'extensions.json';
 export const vscodeFolderName = '.vscode';
 export const workflowFileName = 'workflow.json';
+export const funcIgnoreFileName = '.funcignore';
 
 // Functions
 export const func = 'func';
 export const functionsExtensionId = 'ms-azuretools.vscode-azurefunctions';
 export const workerRuntimeKey = 'FUNCTIONS_WORKER_RUNTIME';
 export const extensionVersionKey = 'FUNCTIONS_EXTENSION_VERSION';
+export const hostStartCommand = 'host start';
+export const hostStartTaskName = `${func}: ${hostStartCommand}`;
+export const funcPackageName = 'azure-functions-core-tools';
+export const defaultFuncPort = '7071';
+export const isolatedSdkName = 'Microsoft.Azure.Functions.Worker.Sdk';
 
 // Workflow
 export const workflowLocationKey = 'WORKFLOWS_LOCATION_NAME';
@@ -38,6 +44,7 @@ export const workflowAppAADClientId = 'WORKFLOWAPP_AAD_CLIENTID';
 export const workflowAppAADObjectId = 'WORKFLOWAPP_AAD_OBJECTID';
 export const workflowAppAADTenantId = 'WORKFLOWAPP_AAD_TENANTID';
 export const workflowAppAADClientSecret = 'WORKFLOWAPP_AAD_CLIENTSECRET';
+export const debugSymbolDll = 'Microsoft.Azure.Workflows.BuildTasks.DebugSymbolGenerator.dll';
 
 export enum workflowType {
   stateful = 'Stateful-Codeless',
@@ -63,9 +70,49 @@ export enum extensionCommand {
   createLogicAppAdvanced = 'logicAppsExtension.createLogicAppAdvanced',
   deploy = 'logicAppsExtension.deploy',
   deploySlot = 'logicAppsExtension.deploySlot',
+  redeploy = 'logicAppsExtension.redeploy',
   showOutputChannel = 'logicAppsExtension.showOutputChannel',
+  startLogicApp = 'logicAppsExtension.startLogicApp',
+  stopLogicApp = 'logicAppsExtension.stopLogicApp',
+  restartLogicApp = 'logicAppsExtension.restartLogicApp',
+  pickProcess = 'logicAppsExtension.pickProcess',
+  getDebugSymbolDll = 'logicAppsExtension.getDebugSymbolDll',
+  deleteLogicApp = 'logicAppsExtension.deleteLogicApp',
+  refresh = 'logicAppsExtension.refresh',
+  switchToDotnetProject = 'logicAppsExtension.switchToDotnetProject',
+  openInPortal = 'logicAppsExtension.openInPortal',
   azureFunctionsOpenFile = 'azureFunctions.openFile',
+  azureFunctionsUninstallFuncCoreTools = 'azureFunctions.uninstallFuncCoreTools',
+  azureFunctionsAppSettingsEncrypt = 'azureFunctions.appSettings.encrypt',
+  azureFunctionsAppSettingsDecrypt = 'azureFunctions.appSettings.decrypt',
   azureSelectSubscriptions = 'azure-account.selectSubscriptions',
+  openOverview = 'logicAppsExtension.openOverview',
+  exportLogicApp = 'logicAppsExtension.exportLogicApp',
+  reviewValidation = 'logicAppsExtension.reviewValidation',
+  browseWebsite = 'logicAppsExtension.browseWebsite',
+  viewProperties = 'logicAppsExtension.viewProperties',
+  createSlot = 'logicAppsExtension.createSlot',
+  deleteSlot = 'logicAppsExtension.deleteSlot',
+  swapSlot = 'logicAppsExtension.swapSlot',
+  startStreamingLogs = 'logicAppsExtension.startStreamingLogs',
+  stopStreamingLogs = 'logicAppsExtension.stopStreamingLogs',
+  viewDeploymentLogs = 'logicAppsExtension.viewDeploymentLogs',
+  appSettingsAdd = 'logicAppsExtension.appSettings.add',
+  appSettingsDelete = 'logicAppsExtension.appSettings.delete',
+  appSettingsDownload = 'logicAppsExtension.appSettings.download',
+  appSettingsEdit = 'logicAppsExtension.appSettings.edit',
+  appSettingsRename = 'logicAppsExtension.appSettings.rename',
+  appSettingsUpload = 'logicAppsExtension.appSettings.upload',
+  appSettingsToggleSlotSetting = 'logicAppsExtension.appSettings.toggleSlotSetting',
+  toggleAppSettingVisibility = 'logicAppsExtension.toggleAppSettingVisibility',
+  useSQLStorage = 'logicAppsExtension.useSQLStorage',
+  switchDebugMode = 'logicAppsExtension.switchDebugMode',
+  connectToGitHub = 'logicAppsExtension.connectToGitHub',
+  disconnectRepo = 'logicAppsExtension.disconnectRepo',
+  viewCommitInGitHub = 'logicAppsExtension.viewCommitInGitHub',
+  enableAzureConnectors = 'logicAppsExtension.enableAzureConnectors',
+  configureWebhookRedirectEndpoint = 'logicAppsExtension.configureWebhookRedirectEndpoint',
+  startRemoteDebug = 'logicAppsExtension.startRemoteDebug',
 }
 
 // Context
@@ -81,23 +128,27 @@ export const contextValueSeparator = ';';
 // Git
 export const gitCommand = 'git';
 
-// Project
+// Project settings
 export const projectLanguageSetting = 'projectLanguage';
 export const funcVersionSetting = 'projectRuntime';
 export const projectSubpathSetting = 'projectSubpath';
 export const projectTemplateKeySetting = 'projectTemplateKey';
 export const projectOpenBehaviorSetting = 'projectOpenBehavior';
+export const stopFuncTaskPostDebugSetting = 'stopFuncTaskPostDebug';
+export const validateFuncCoreToolsSetting = 'validateFuncCoreTools';
+export const showDeployConfirmationSetting = 'showDeployConfirmation';
+export const deploySubpathSetting = 'deploySubpath';
+export const preDeployTaskSetting = 'preDeployTask';
+export const pickProcessTimeoutSetting = 'pickProcessTimeout';
+
+// Project
 export const defaultBundleId = 'Microsoft.Azure.Functions.ExtensionBundle';
 export const defaultVersionRange = '[1.*, 2.0.0)'; // Might need to be changed
-export const hostStartCommand = 'host start';
 export const funcWatchProblemMatcher = '$func-watch';
 export const extInstallCommand = 'extensions install';
 export const extInstallTaskName = `${func}: ${extInstallCommand}`;
-
-export const deploySubpathSetting = 'deploySubpath';
 export const tasksVersion = '2.0.0';
 export const launchVersion = '0.2.0';
-export const preDeployTaskSetting = 'preDeployTask';
 export const dotnetPublishTaskLabel = 'publish';
 
 // local.settings.json
@@ -114,8 +165,16 @@ export enum DotnetVersion {
   net48 = 'net48',
 }
 
+// Packages Manager
+export enum PackageManager {
+  npm = 'npm',
+  brew = 'brew',
+}
+
 // Resources
 export const kubernetesKind = 'kubernetes';
 export const functionAppKind = 'functionapp';
 export const logicAppKind = 'workflowapp';
 export const logicAppKindAppSetting = 'workflowApp';
+
+export const sqlStorageConnectionStringKey = 'Workflows.Sql.ConnectionString';

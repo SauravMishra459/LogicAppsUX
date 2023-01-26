@@ -120,6 +120,7 @@ export interface RecurrenceSetting {
 export interface ConnectionMetadata {
   required: boolean;
   type?: ConnectionType;
+  connectionCreationClient?: string;
 }
 
 export interface ConnectionReferenceKeyFormatMapping {
@@ -166,7 +167,7 @@ export interface OperationManifestProperties {
   outputTokens?: {
     selfReference?: boolean;
     disableTokens?: boolean;
-    builtIns: BuiltInOutput[];
+    builtIns?: BuiltInOutput[];
   };
 
   repetition?: RepetitionInfo;
