@@ -1,9 +1,6 @@
 import { filterRecord } from '../utils';
-import FunctionAppEntry from './functionAppEntry';
 import { UniversalConnectionParameter } from './universalConnectionParameter';
 import {
-  Text,
-  List,
   MessageBarType,
   MessageBar,
   Checkbox,
@@ -14,7 +11,6 @@ import {
   PrimaryButton,
   TextField,
   TooltipHost,
-  Spinner,
 } from '@fluentui/react';
 import type {
   ConnectionParameter,
@@ -28,7 +24,7 @@ import { Capabilities, ConnectionParameterTypes } from '@microsoft/utils-logic-a
 import type { FormEvent } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
-import type { UseQueryResult } from 'react-query';
+import { AzureResourcePicker } from '../azureResourcePicker';
 
 export interface CreateConnectionProps {
   connectorDisplayName: string;
@@ -52,12 +48,12 @@ export interface CreateConnectionProps {
   availableGateways?: Gateway[];
   checkOAuthCallback: (parameters: Record<string, ConnectionParameter>) => boolean;
   needsAzureFunction: boolean;
-  functionAppsQuery: UseQueryResult;
-  selectedAppId: string;
-  selectedFunctionId: string;
-  selectAppCallback: (appId: string) => void;
-  fetchFunctionsCallback: (functionAppId: string) => Promise<any[]>;
-  selectFunctionCallback: (appFunction: any) => void;
+  fetchAppsCallback: () => Promise<any[]>;
+  selectAppCallback: (app?: any) => void;
+  selectedApp: any;
+  fetchFunctionsCallback: (appId: string) => Promise<any[]>;
+  selectFunctionCallback: (appFunction?: any) => void;
+  selectedFunction: any;
 }
 
 type ParamType = ConnectionParameter | ConnectionParameterSetParameter;
@@ -80,12 +76,12 @@ export const CreateConnection = (props: CreateConnectionProps): JSX.Element => {
     availableGateways,
     checkOAuthCallback,
     needsAzureFunction,
-    functionAppsQuery,
-    selectedAppId,
-    selectedFunctionId,
+    fetchAppsCallback,
     selectAppCallback,
+    selectedApp,
     fetchFunctionsCallback,
     selectFunctionCallback,
+    selectedFunction,
   } = props;
 
   const intl = useIntl();
@@ -198,12 +194,12 @@ export const CreateConnection = (props: CreateConnectionProps): JSX.Element => {
   const [connectionDisplayName, setConnectionDisplayName] = useState<string>('');
   const validParams = useMemo(() => {
     if (showNameInput && !connectionDisplayName) return false;
-    if (needsAzureFunction && !selectedFunctionId) return false;
+    if (needsAzureFunction && !selectedFunction?.id) return false;
     if (Object.keys(capabilityEnabledParameters ?? {}).length === 0) return true;
     return Object.entries(capabilityEnabledParameters).every(
       ([key, parameter]) => parameter?.uiDefinition?.constraints?.required !== 'true' || !!parameterValues[key]
     );
-  }, [connectionDisplayName, needsAzureFunction, parameterValues, capabilityEnabledParameters, selectedFunctionId, showNameInput]);
+  }, [connectionDisplayName, needsAzureFunction, parameterValues, capabilityEnabledParameters, selectedFunction.id, showNameInput]);
 
   const canSubmit = useMemo(() => !isLoading && validParams, [isLoading, validParams]);
 
@@ -303,16 +299,6 @@ export const CreateConnection = (props: CreateConnectionProps): JSX.Element => {
     description: 'Close button aria label',
   });
 
-  const functionAppsLoadingText = intl.formatMessage({
-    defaultMessage: 'Loading Function Apps...',
-    description: 'Text for loading function apps',
-  });
-
-  const functionAppsLabel = intl.formatMessage({
-    defaultMessage: 'Select a function app function',
-    description: 'Label for function app selection',
-  });
-
   const gatewayTooltipText = intl.formatMessage({
     defaultMessage: 'Select this if you are configuring an on-prem connection',
     description: 'Tooltip for on-prem gateway connection checkbox',
@@ -332,11 +318,6 @@ export const CreateConnection = (props: CreateConnectionProps): JSX.Element => {
   const submitButtonAriaLabel = useMemo(() => {
     return hasOAuth ? signInButtonAria : createButtonAria;
   }, [hasOAuth, signInButtonAria, createButtonAria]);
-
-  const functionApps = useMemo(
-    () => ((functionAppsQuery?.data ?? []) as any[]).sort((a, b) => a.name.localeCompare(b.name)),
-    [functionAppsQuery.data]
-  );
 
   const showConfigParameters = useMemo(() => !needsAzureFunction, [needsAzureFunction]);
 
@@ -461,44 +442,24 @@ export const CreateConnection = (props: CreateConnectionProps): JSX.Element => {
 
         {/* Function Apps */}
         {needsAzureFunction && (
-          <div>
-            <Label className="label" required>
-              {functionAppsLabel}
-            </Label>
-            <div className="msla-function-apps-container">
-              <div className="msla-function-app-list-header">
-                <Text>{'Name'}</Text>
-                <Text>{'Resource Group'}</Text>
-                <Text>{'Location'}</Text>
-              </div>
-              {functionAppsQuery?.isLoading ? (
-                <Spinner label={functionAppsLoadingText} style={{ margin: '16px' }} />
-              ) : functionAppsQuery?.isSuccess ? (
-                <div className="msla-function-apps-list-container" data-is-scrollable>
-                  <List
-                    items={functionApps.map((fApp) => ({
-                      ...fApp,
-                      selected: selectedAppId === fApp.id,
-                      selectedFunctionId,
-                    }))}
-                    onRenderCell={(fApp) => (
-                      <FunctionAppEntry
-                        isLoading={isLoading}
-                        functionApp={fApp}
-                        onAppSelect={selectAppCallback}
-                        onFunctionSelect={selectFunctionCallback}
-                        fetchFunctions={fetchFunctionsCallback}
-                      />
-                    )}
-                  />
-                </div>
-              ) : functionAppsQuery?.isError ? (
-                <MessageBar messageBarType={MessageBarType.error} style={{ margin: '16px' }}>
-                  {functionAppsQuery?.error as string}
-                </MessageBar>
-              ) : null}
-            </div>
-          </div>
+          <AzureResourcePicker
+            key={connectorDisplayName}
+            resourcePages={[
+              {
+                resourceType: 'app',
+                getResourceCallback: fetchAppsCallback,
+                selectedResource: selectedApp,
+                selectResourceCallback: selectAppCallback,
+              },
+              {
+                resourceType: 'function',
+                getResourceCallback: () => fetchFunctionsCallback(selectedApp),
+                selectedResource: selectedFunction,
+                selectResourceCallback: selectFunctionCallback,
+              }
+            ]}
+
+          />
         )}
       </div>
 

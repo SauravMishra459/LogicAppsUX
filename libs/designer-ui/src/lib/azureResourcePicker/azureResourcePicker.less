@@ -1,0 +1,77 @@
+@import (reference) '../variables.less';
+
+.msla-azure-resources-container {
+  border: 1px solid grey;
+  border-radius: 2px;
+
+  .msla-azure-resource-list-header {
+    padding: 8px 24px 8px 8px;
+    display: grid;
+    grid-template-columns: 2fr 2fr 1fr;
+    border-bottom: 1px solid grey;
+
+    & > span {
+      font-weight: bold;
+    }
+  }
+
+  .msla-azure-resources-list-container {
+    max-height: 600px;
+    overflow-y: scroll;
+  }
+
+  .msla-azure-resource-entry {
+    border-bottom: 1px solid #dddddd;
+
+    &.selected > button {
+      background: @selected-item-background-color;
+    }
+
+    & > button {
+      border: none;
+      outline: none;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: 2fr 2fr 1fr;
+      gap: 4px;
+      width: 100%;
+      text-align: left;
+      background: none;
+      transition: 0.2s background;
+      word-break: break-all;
+
+      &:hover,
+      &:focus {
+        background: @hoverColor;
+      }
+    }
+  }
+
+  *.ms-Breadcrumb {
+    margin: 0px;
+    border-bottom: 2px solid grey;
+  }
+
+  *.ms-Breadcrumb-item {
+    font-size: 13px;
+  }
+}
+
+body.dark {
+  .msla-azure-resource-entry {
+    border-bottom: 1px solid @ms-color-secondaryBorder;
+
+    &.selected > button {
+      background: @ms-color-primaryBackground;
+    }
+
+    .msla-azure-resource-entry > button {
+      &:focus {
+        background: @ms-color-primaryBackground;
+      }
+      &:hover {
+        background: @ms-color-primaryBackgroundHover;
+      }
+    }
+  }
+}
