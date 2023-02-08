@@ -8,7 +8,7 @@ import { useSelector } from 'react-redux';
 
 export const App = () => {
   const vscodeState = useSelector((state: RootState) => state.designer);
-  const { panelMetaData, connectionReferences, baseUrl, apiHubServiceDetails, readOnly, isLocal, apiVersion, isMonitoringView } =
+  const { panelMetaData, connectionReferences, baseUrl, apiHubServiceDetails, readOnly, isLocal, apiVersion, isMonitoringView, runId } =
     vscodeState;
   const codelessApp = panelMetaData?.codelessApp;
   const [theme, setTheme] = useState<Theme>(getTheme(document.body));
@@ -18,8 +18,12 @@ export const App = () => {
   });
 
   const services = useMemo(() => {
-    return getDesignerServices(baseUrl, apiVersion, apiHubServiceDetails, isLocal);
-  }, [baseUrl, apiVersion, apiHubServiceDetails, isLocal]);
+    return getDesignerServices(panelMetaData, baseUrl, apiVersion, apiHubServiceDetails, isLocal);
+  }, [baseUrl, apiVersion, apiHubServiceDetails, isLocal, panelMetaData]);
+
+  if (runId && isMonitoringView) {
+    //services.runService.getRun(runId)
+  }
 
   return (
     <DesignerProvider

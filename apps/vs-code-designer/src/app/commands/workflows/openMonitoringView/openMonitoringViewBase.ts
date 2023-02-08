@@ -20,6 +20,7 @@ export abstract class OpenMonitoringViewBase extends OpenDesignerBase {
   protected workflowName: string;
   protected workflowFilePath: string;
   protected localSettings: Record<string, string>;
+  public accessToken: string;
 
   protected constructor(
     context: IActionContext | IAzureConnectorsContext,
